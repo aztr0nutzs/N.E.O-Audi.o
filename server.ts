@@ -256,21 +256,34 @@ interface DownloadJob {
 let downloadJobs: DownloadJob[] = [];
 const jobProcesses = new Map<string, any>();
 
-if (fs.existsSync(JOBS_FILE)) {
-  try {
-    downloadJobs = JSON.parse(fs.readFileSync(JOBS_FILE, 'utf-8'));
-    for (const job of downloadJobs) {
-      if (['queued', 'analyzing', 'downloading', 'converting', 'indexing'].includes(job.status)) {
+const loadJobsDb = (): DownloadJob[] => {
+    if (!fs.existsSync(JOBS_FILE)) return [];
+    let raw: string;
+    try {
+        raw = fs.readFileSync(JOBS_FILE, 'utf-8');
+    } catch (e: any) {
+        console.warn(`jobs.json could not be read (${e.message}); starting with empty job list.`);
+        return [];
+    }
+    if (!raw || raw.trim() === '') return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        console.warn('jobs.json is not valid JSON; starting with empty job list.');
+        return [];
+    }
+};
+
+downloadJobs = loadJobsDb();
+for (const job of downloadJobs) {
+    if (['queued', 'analyzing', 'downloading', 'converting', 'indexing'].includes(job.status)) {
         job.status = 'failed';
         job.phase = 'Failed';
         job.error = 'Server was restarted before job could complete';
         job.errorCode = 'ERR_SERVER_RESTARTED';
         job.updatedAt = Date.now();
-      }
     }
-  } catch(e) {
-    console.error("Failed to parse jobs.json", e);
-  }
 }
 
 const saveJobsDb = () => {
