@@ -7,6 +7,15 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { Track } from '../types';
 import toast from 'react-hot-toast';
 
+// Files matching this regex are accepted by the chooser. The backend still
+// authoritatively validates via ffprobe; this is just a fast client-side guard.
+const ACCEPTED_AUDIO_EXT_RE = /\.(mp3|wav|m4a)$/i;
+const isAcceptableAudio = (file: File): boolean => {
+   if (file.type.startsWith('video/')) return false;
+   if (file.type.startsWith('audio/')) return true;
+   return ACCEPTED_AUDIO_EXT_RE.test(file.name);
+};
+
 export function Uploader() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -18,8 +27,8 @@ export function Uploader() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
-      if (!selected.type.startsWith('audio/')) {
-        toast.error('Please select a valid audio file');
+      if (!isAcceptableAudio(selected)) {
+        toast.error('Please select a supported audio file (MP3, WAV, M4A)');
         return;
       }
       setFile(selected);
@@ -37,12 +46,12 @@ export function Uploader() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
-    if (dropped && dropped.type.startsWith('audio/')) {
+    if (dropped && isAcceptableAudio(dropped)) {
       setFile(dropped);
       setTitle(dropped.name.replace(/\.[^/.]+$/, ""));
       setArtist('Local User');
     } else {
-      toast.error('Please drop a valid audio file');
+      toast.error('Please drop a supported audio file (MP3, WAV, M4A)');
     }
   };
 
@@ -50,31 +59,26 @@ export function Uploader() {
     if (!file) return;
 
     try {
-      const track: Track = {
-        id: '', // Will be assigned by backend
-        title,
-        artist,
-        sourceType: 'local',
-        localUrl: '', 
-        format: 'mp3',
-        duration: 0,
-        size: file.size,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        favorite: false
+      // Only title/artist are sent as overrides. format, duration, bitrate,
+      // size, sourceType, and localUrl are all derived from the actual file
+      // by the backend after probing, so sending placeholders here would just
+      // be misleading.
+      const overrides: Partial<Track> = {
+         title: title.trim(),
+         artist: artist.trim() || 'Unknown Artist',
       };
 
-      await addTrack(track, file);
+      await addTrack(overrides, file);
       toast.success('Track added to library');
-      
+
       setFile(null);
       setTitle('');
       setArtist('');
       if (fileInputRef.current) fileInputRef.current.value = '';
-      
-    } catch (err) {
+
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to save file');
+      toast.error(err?.message ? `Upload failed: ${err.message}` : 'Failed to save file');
     }
   };
 
@@ -97,12 +101,12 @@ export function Uploader() {
               <Zap className="mx-auto h-16 w-16 text-neo-lime mb-6 drop-shadow-[0_0_8px_rgba(57,255,20,0.8)]" />
               <p className="text-white font-bold tracking-widest uppercase mb-2">Initialize Data Link</p>
               <p className="text-xs text-gray-500 font-mono">Click or drag local audio assets here</p>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="audio/*" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/wave,audio/mp4,audio/x-m4a,.mp3,.wav,.m4a"
+                className="hidden"
               />
             </div>
           ) : (

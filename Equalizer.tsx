@@ -292,7 +292,12 @@ export function Equalizer() {
             <div className="text-center hidden sm:block">
                <div className="text-[10px] text-gray-400 mb-1">QUALITY</div>
                <div className="text-neo-orange font-bold">
-                  {currentTrack?.bitrate ? `${currentTrack.bitrate} kbps` : (currentTrack?.format as any === 'wav' || currentTrack?.format as any === 'flac' ? 'LOSSLESS' : '---')}
+                  {(() => {
+                     const fmt = (currentTrack?.format || '').toLowerCase();
+                     if (fmt === 'wav' || fmt === 'flac') return 'LOSSLESS';
+                     if (currentTrack?.bitrate) return `${currentTrack.bitrate} kbps`;
+                     return '---';
+                  })()}
                </div>
             </div>
          </div>

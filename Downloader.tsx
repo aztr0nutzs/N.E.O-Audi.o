@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useAppStore } from '../store/useAppStore';
+import { SUPPORTED_FORMATS } from '../types';
 
 export function Downloader() {
   const settings = useAppStore(state => state.settings);
@@ -112,7 +113,7 @@ export function Downloader() {
                   <span className="text-gray-500">[{format.toUpperCase()}]</span>
                 </label>
                 <div className="grid grid-cols-3 gap-1">
-                  {['mp3', 'wav', 'm4a'].map((f) => (
+                  {SUPPORTED_FORMATS.map((f) => (
                     <button
                       key={f}
                       onClick={() => setFormat(f)}

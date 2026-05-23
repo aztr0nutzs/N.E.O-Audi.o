@@ -1,13 +1,26 @@
+// Canonical set of audio formats N.E.O. can produce, probe, and play end to end.
+// Adding to this list requires support in: ffmpeg/yt-dlp output, the upload
+// validator, normalizeFormat() on the backend, and the Library Lossless filter.
+export const SUPPORTED_FORMATS = ['mp3', 'wav', 'm4a'] as const;
+export type SupportedFormat = typeof SUPPORTED_FORMATS[number];
+
+// Lossless subset. Everything outside is treated as lossy regardless of bitrate.
+export const LOSSLESS_FORMATS: ReadonlyArray<SupportedFormat | 'flac'> = ['wav', 'flac'];
+
+// Where a Track came from. 'local' = uploaded from the user's device.
+// 'downloaded' = produced by the N.E.O. download engine from a remote URL.
+export type TrackSourceType = 'local' | 'downloaded';
+
 export interface Track {
   id: string;
   title: string;
   artist: string;
   album?: string;
   genre?: string;
-  sourceType: 'local' | 'youtube' | 'url';
+  sourceType: TrackSourceType;
   sourceUrl?: string; // Original URL if downloaded
   localUrl: string;   // Blob URL or local path
-  format: 'mp3' | 'wav' | 'm4a';
+  format: SupportedFormat;
   bitrate?: number;
   duration: number; // in seconds
   size: number; // in bytes
@@ -42,7 +55,7 @@ export interface DownloadJob {
   actualDuration?: number;
   speed?: string;
   eta?: string;
-  format: 'mp3' | 'wav' | 'm4a';
+  format: SupportedFormat;
   bitrate: number;
   metadata?: Partial<Track>;
   createdAt: number;
@@ -52,7 +65,7 @@ export interface DownloadJob {
 }
 
 export interface AppSettings {
-  defaultFormat: 'mp3' | 'wav' | 'm4a';
+  defaultFormat: SupportedFormat;
   defaultBitrate: number;
   themeIntensity: 'clean' | 'neon' | 'reactor';
   autoFillMetadata: boolean;

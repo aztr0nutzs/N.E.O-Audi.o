@@ -33,26 +33,58 @@ async function getDB() {
   return dbPromise;
 }
 
+// Best-effort error extraction from a non-ok fetch Response.
+async function extractApiError(res: Response, fallback: string): Promise<string> {
+   try {
+      const data = await res.json();
+      if (data && typeof data.error === 'string') return data.error;
+   } catch (_) { /* not JSON */ }
+   return `${fallback} (HTTP ${res.status})`;
+}
+
+// Fields the backend is willing to accept as metadata overrides on PATCH.
+type EditableTrackFields = Pick<Track, 'title' | 'artist' | 'album' | 'genre' | 'favorite'>;
+
 export const storage = {
+  // Upload a new audio file. `overrides` may carry user-supplied title/artist;
+  // everything else (format, duration, bitrate, size, sourceType, localUrl) is
+  // determined by the backend from the actual file. Do not send placeholder
+  // values from the frontend.
+  async uploadTrack(audioBlob: Blob, overrides: Partial<Track> = {}, filename?: string): Promise<Track> {
+     const fd = new FormData();
+     const safeName = filename || (overrides.title ? `${overrides.title}.audio` : 'upload.audio');
+     fd.append('file', audioBlob, safeName);
+     const metaPayload: Record<string, string> = {};
+     if (typeof overrides.title === 'string' && overrides.title.trim()) metaPayload.title = overrides.title.trim();
+     if (typeof overrides.artist === 'string' && overrides.artist.trim()) metaPayload.artist = overrides.artist.trim();
+     fd.append('metadata', JSON.stringify(metaPayload));
+     const res = await fetch('/api/tracks/upload', { method: 'POST', body: fd });
+     if (!res.ok) throw new Error(await extractApiError(res, 'Failed to upload'));
+     return await res.json();
+  },
+
   async saveTrack(track: Track, audioBlob?: Blob) {
     if (audioBlob) {
-       const fd = new FormData();
-       fd.append('file', audioBlob, track.title || 'upload.mp3');
-       fd.append('metadata', JSON.stringify(track));
-       const res = await fetch('/api/tracks/upload', {
-          method: 'POST',
-          body: fd
-       });
-       if (!res.ok) throw new Error("Failed to upload");
-       return await res.json();
+       // Legacy entry point: preserve compatibility with callers that still
+       // pass a full Track shape, but only forward editable overrides.
+       const filename = track.title ? `${track.title}.audio` : 'upload.audio';
+       return await storage.uploadTrack(audioBlob, track, filename);
     }
-    // Update existing track
+    // Update existing track. Only forward editable fields so we never try to
+    // patch derived data (format, duration, etc.) onto the server.
+    const editable: Partial<EditableTrackFields> = {};
+    if (track.title !== undefined) editable.title = track.title;
+    if (track.artist !== undefined) editable.artist = track.artist;
+    if (track.album !== undefined) editable.album = track.album;
+    if (track.genre !== undefined) editable.genre = track.genre;
+    if (track.favorite !== undefined) editable.favorite = track.favorite;
+
     const res = await fetch(`/api/tracks/${track.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(track)
+      body: JSON.stringify(editable)
     });
-    if (!res.ok) throw new Error("Failed to update track");
+    if (!res.ok) throw new Error(await extractApiError(res, 'Failed to update track'));
     return await res.json();
   },
 
@@ -67,13 +99,15 @@ export const storage = {
     return await res.json();
   },
 
-  async getAudioBlob(trackId: string): Promise<Blob | undefined> {
+  async getAudioBlob(_trackId: string): Promise<Blob | undefined> {
     // We don't get blobs via API usually, we return null so getAudioUrl uses the URL
     return undefined;
   },
 
   async deleteTrack(id: string) {
-    await fetch(`/api/tracks/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/tracks/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await extractApiError(res, 'Failed to delete track'));
+    return await res.json().catch(() => ({ success: true }));
   },
 
   async savePlaylist(playlist: Playlist) {
