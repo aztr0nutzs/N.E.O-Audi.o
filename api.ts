@@ -42,8 +42,11 @@ export const api = {
   async deleteDownloadJob(id: string): Promise<void> {
     const res = await fetch(`/api/download-jobs/${id}`, { method: 'DELETE' });
     if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Failed to delete job");
+      const data = await res.json().catch(() => ({}));
+      const err: any = new Error(data.error || "Failed to delete job");
+      err.status = res.status;
+      err.code = data.code;
+      throw err;
     }
   },
 

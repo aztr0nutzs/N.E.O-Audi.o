@@ -219,6 +219,7 @@ export function Downloader() {
                          <>
                            <button onClick={() => startJob(job.id)} className="text-[9px] text-neo-lime border border-neo-lime/50 px-2 py-1 rounded hover:bg-neo-lime/20 transition-colors uppercase font-bold tracking-wide">START</button>
                            <button onClick={() => cancelJob(job.id)} className="text-[9px] text-neo-magenta border border-neo-magenta/50 px-2 py-1 rounded hover:bg-neo-magenta/20 transition-colors uppercase font-bold tracking-wide">CANCEL</button>
+                           <button onClick={() => removeJob(job.id)} className="text-[9px] text-red-500 border border-red-500/50 px-2 py-1 rounded hover:bg-red-500/20 transition-colors uppercase font-bold tracking-wide">REMOVE</button>
                          </>
                        )}
                        {(job.status === 'failed' || job.status === 'cancelled') && (

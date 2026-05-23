@@ -67,7 +67,11 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
         await api.deleteDownloadJob(id);
         set((state) => ({ jobs: state.jobs.filter(j => j.id !== id) }));
       } catch (err: any) {
-        toast.error(`Delete failed: ${err.message}`);
+        if (err.status === 409 || err.code === 'ERR_JOB_ACTIVE') {
+          toast.error('Job is still active — cancel it first, then remove.');
+        } else {
+          toast.error(`Delete failed: ${err.message}`);
+        }
       }
     },
 
