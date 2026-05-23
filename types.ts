@@ -40,6 +40,8 @@ export interface DownloadJob {
   outputFilename?: string;
   actualBitrate?: number;
   actualDuration?: number;
+  speed?: string;
+  eta?: string;
   format: 'mp3' | 'wav' | 'm4a';
   bitrate: number;
   metadata?: Partial<Track>;

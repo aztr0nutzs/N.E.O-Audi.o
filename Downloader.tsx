@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDownloadStore } from '../store/useDownloadStore';
-import { AlertCircle, Bot, DownloadCloud, Play } from 'lucide-react';
+import { AlertCircle, Bot, ChevronDown, ChevronRight, DownloadCloud, Play, Terminal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -14,22 +14,36 @@ export function Downloader() {
   
   const { jobs, loadJobs, addJob, startJob, retryJob, removeJob, cancelJob } = useDownloadStore();
   const playTrack = usePlayerStore(state => state.playTrack);
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
 
+  const isValidHttpUrl = (s: string): boolean => {
+    try {
+      const u = new URL(s);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const handleAdd = async () => {
-    if (!url || !url.startsWith('http')) {
-      toast.error('Please enter a valid URL connecting to a permitted source');
+    if (!isValidHttpUrl(url)) {
+      toast.error('Please enter a valid http or https URL for a permitted source');
       return;
     }
-    
+
     const newJob = await addJob(url, format, bitrate);
     if (newJob) {
       await startJob(newJob.id);
     }
     setUrl('');
+  };
+
+  const toggleLogs = (id: string) => {
+    setExpandedLogs(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -74,17 +88,17 @@ export function Downloader() {
             <div className="w-full relative shadow-[0_0_15px_rgba(0,240,255,0.2)] rounded-lg">
               {/* Outer bevel frame */}
               <div className="absolute inset-0 bg-transparent border-2 border-[#1a1a24] rounded-lg transform scale-105 pointer-events-none" />
-              <input 
-                type="url" 
+              <input
+                type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="ENTER HTTP/HTTPS URL" 
+                placeholder="ENTER HTTP/HTTPS URL"
                 className={cn(
                   "w-full h-16 bg-[#0a0a0f] border-2 text-center text-xl sm:text-2xl font-bold tracking-widest text-white placeholder:text-gray-600 rounded-lg focus:outline-none transition-colors",
-                  url && !url.startsWith('http') ? "border-neo-magenta shadow-[0_0_15px_rgba(255,0,255,0.4)]" : "border-neo-cyan focus:border-white"
+                  url && !isValidHttpUrl(url) ? "border-neo-magenta shadow-[0_0_15px_rgba(255,0,255,0.4)]" : "border-neo-cyan focus:border-white"
                 )}
               />
-              {url && !url.startsWith('http') && (
+              {url && !isValidHttpUrl(url) && (
                  <div className="absolute -bottom-6 flex items-center justify-center w-full text-neo-magenta text-[10px] uppercase tracking-widest font-bold">
                     <AlertCircle className="w-3 h-3 mr-1" /> Invalid URL Format
                  </div>
@@ -188,26 +202,49 @@ export function Downloader() {
                         <span>{job.format} / {job.actualBitrate || job.bitrate}kbps</span>
                         <span className="text-gray-400 max-w-[50%] truncate text-right">{job.phase}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-black border border-gray-800 rounded-full overflow-hidden relative">
-                           <div 
+                           <div
                              className={cn(
                                "h-full transition-all duration-300 shadow-[0_0_5px_currentColor]",
                                job.status === 'complete' ? "bg-neo-lime text-neo-lime" : job.status === 'failed' ? "bg-red-500 text-red-500" : job.status === 'cancelled' ? "bg-gray-700 text-gray-700" : "bg-neo-cyan text-neo-cyan"
                              )}
-                             style={{ width: `${job.progress > 0 ? job.progress : 5}%` }} 
+                             style={{ width: `${job.progress > 0 ? job.progress : 5}%` }}
                            />
                         </div>
                         <span className="text-[9px] font-bold min-w-[28px] text-right text-gray-400">{Math.round(job.progress)}%</span>
                     </div>
-                    
+
+                    {(job.speed || job.eta) && (job.status === 'downloading' || job.status === 'converting' || job.status === 'analyzing') && (
+                      <div className="flex justify-between text-[9px] text-neo-cyan/80 uppercase tracking-widest font-bold">
+                        {job.speed ? <span>SPD {job.speed}</span> : <span />}
+                        {job.eta ? <span>ETA {job.eta}</span> : <span />}
+                      </div>
+                    )}
+
                     {job.error && (
-                      <div className="text-[9px] text-red-400 mt-1 italic tracking-tight leading-tight bg-red-500/10 p-1.5 rounded border border-red-500/20 max-h-24 overflow-y-auto">
-                        <span className="font-bold block mb-1">{job.errorCode ? `[${job.errorCode}] ` : ''}{job.error}</span>
-                        {job.logs && job.logs.length > 0 && (
-                          <div className="opacity-70 mt-1 ml-1 pl-1 border-l hover:opacity-100 transition-opacity">
-                             {job.logs.slice(-5).map((l, i) => <div key={i}>{l}</div>)}
+                      <div className="text-[9px] text-red-400 mt-1 italic tracking-tight leading-tight bg-red-500/10 p-1.5 rounded border border-red-500/20">
+                        <span className="font-bold block mb-1 break-words">
+                          {job.errorCode ? `[${job.errorCode}] ` : ''}{job.error}
+                        </span>
+                      </div>
+                    )}
+
+                    {(job.status === 'failed' || job.status === 'cancelled') && job.logs && job.logs.length > 0 && (
+                      <div className="mt-1">
+                        <button
+                          onClick={() => toggleLogs(job.id)}
+                          className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-neo-cyan/80 hover:text-neo-cyan transition-colors"
+                        >
+                          {expandedLogs[job.id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                          <Terminal className="w-3 h-3" />
+                          <span>{expandedLogs[job.id] ? 'Hide Logs' : 'Show Logs'}</span>
+                          <span className="text-gray-500 normal-case">({job.logs.length})</span>
+                        </button>
+                        {expandedLogs[job.id] && (
+                          <div className="mt-1 text-[9px] font-mono text-gray-400 bg-black/80 border border-neo-cyan/20 rounded p-1.5 max-h-40 overflow-y-auto leading-snug whitespace-pre-wrap break-words">
+                            {job.logs.map((l, i) => <div key={i}>{l}</div>)}
                           </div>
                         )}
                       </div>

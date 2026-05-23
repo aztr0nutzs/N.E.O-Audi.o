@@ -30,6 +30,25 @@ This project implements a highly polished "cyberpunk/neon" UI shell and robust l
 
 The downloader is powered by **yt-dlp** (via `youtube-dl-exec`) for source extraction, **ffmpeg** (provided by `@ffmpeg-installer/ffmpeg`) for audio conversion, and **ffprobe** (provided by `ffprobe-static`) for verifying the produced files. Only audio you legally own or that is unambiguously permitted may be processed (see the Safety and Compliance section above).
 
+### Provider Policy (optional)
+
+Set `ALLOWED_DOWNLOAD_HOSTS` to a comma-separated list of hostnames that the engine is willing to accept (e.g. `upload.wikimedia.org,*.archive.org`). Leave it empty to allow any http(s) source — the Safety and Compliance rule above still applies to every request you make.
+
+### Error Codes
+
+When a job fails, `errorCode` is one of:
+
+- `invalid_url` — malformed URL, wrong protocol, missing hostname
+- `unsupported_source` — host not on allowlist, or yt-dlp cannot handle the URL
+- `metadata_failed` — yt-dlp could not read media info
+- `duration_limit_exceeded` — exceeds `MAX_DOWNLOAD_DURATION_SECONDS`
+- `size_limit_exceeded` — exceeds `MAX_DOWNLOAD_SIZE_MB`
+- `engine_missing` — yt-dlp/ffmpeg binary not available
+- `download_failed` — network or yt-dlp runtime failure
+- `conversion_failed` — ffmpeg postprocessor failure or missing output
+- `verification_failed` — output file fails ffprobe / size / extension checks
+- `cancelled` — user cancelled the job
+
 ## Running the App
 
 1. `npm install`
