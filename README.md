@@ -22,9 +22,13 @@ This project implements a highly polished "cyberpunk/neon" UI shell and robust l
 - **Downloading Engine:** A real background download/extraction engine using `yt-dlp` and `ffmpeg`. It queues jobs, analyzes targets, extracts audio, converts to the specified format (MP3, WAV, M4A) and selected bitrate, and exposes real-time logs/progress.
 
 ## Tech Stack
-- Frontend: React 18, Zustand, Tailwind CSS, Lucide Icons, Framer Motion
-- Backend: Express, Multer, youtube-dl-exec (yt-dlp), fluent-ffmpeg
+- Frontend: React 19, Zustand, Tailwind CSS, Lucide Icons, Motion
+- Backend: Express, Multer, CORS, dotenv, youtube-dl-exec (yt-dlp), `@ffmpeg-installer/ffmpeg`, `ffprobe-static`, `sanitize-filename`, `mime-types`
 - Types: TypeScript
+
+## Downloader Engine
+
+The downloader is powered by **yt-dlp** (via `youtube-dl-exec`) for source extraction, **ffmpeg** (provided by `@ffmpeg-installer/ffmpeg`) for audio conversion, and **ffprobe** (provided by `ffprobe-static`) for verifying the produced files. Only audio you legally own or that is unambiguously permitted may be processed (see the Safety and Compliance section above).
 
 ## Running the App
 
