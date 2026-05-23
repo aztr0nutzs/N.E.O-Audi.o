@@ -64,7 +64,7 @@ class EngineError extends Error {
    }
 }
 
-const app = express();
+export const app = express();
 const PORT = 3000;
 
 app.use(cors());
@@ -1166,10 +1166,15 @@ async function setupVite() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+}
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+export async function startServer(port: number = PORT) {
+  await setupVite();
+  return app.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${port}`);
   });
 }
 
-setupVite();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
