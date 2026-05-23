@@ -21,6 +21,48 @@ const execFileAsync = promisify(execFile);
 const MAX_DOWNLOAD_DURATION_SECONDS = parseInt(process.env.MAX_DOWNLOAD_DURATION_SECONDS || "3600");
 const MAX_DOWNLOAD_SIZE_MB = parseInt(process.env.MAX_DOWNLOAD_SIZE_MB || "500");
 const DOWNLOAD_JOB_RETENTION_HOURS = parseInt(process.env.DOWNLOAD_JOB_RETENTION_HOURS || "24");
+const MIN_DOWNLOAD_SIZE_BYTES = 1024;
+const FILENAME_MAX_LEN = 120;
+
+// Optional comma-separated allowlist of hostnames. Empty/unset => allow all http(s) sources.
+// The user remains solely responsible for complying with the legal/compliance warning.
+const ALLOWED_DOWNLOAD_HOSTS = (process.env.ALLOWED_DOWNLOAD_HOSTS || "")
+   .split(",")
+   .map(h => h.trim().toLowerCase())
+   .filter(Boolean);
+
+const isHostAllowed = (hostname: string): boolean => {
+   if (ALLOWED_DOWNLOAD_HOSTS.length === 0) return true;
+   const h = hostname.toLowerCase();
+   return ALLOWED_DOWNLOAD_HOSTS.some(allowed => {
+      if (allowed.startsWith("*.")) {
+         const suffix = allowed.slice(1); // ".example.com"
+         return h === allowed.slice(2) || h.endsWith(suffix);
+      }
+      return h === allowed;
+   });
+};
+
+// Specific engine error codes
+type EngineErrorCode =
+   | 'invalid_url'
+   | 'unsupported_source'
+   | 'metadata_failed'
+   | 'duration_limit_exceeded'
+   | 'size_limit_exceeded'
+   | 'engine_missing'
+   | 'download_failed'
+   | 'conversion_failed'
+   | 'verification_failed'
+   | 'cancelled';
+
+class EngineError extends Error {
+   code: EngineErrorCode;
+   constructor(code: EngineErrorCode, message: string) {
+      super(message);
+      this.code = code;
+   }
+}
 
 const app = express();
 const PORT = 3000;
@@ -86,13 +128,13 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
     if (!file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-    
+
     const mimeType = mime.lookup(file.originalname) || '';
     if (!mimeType.startsWith('audio/') && !mimeType.startsWith('video/')) {
         fs.unlinkSync(file.path);
         return res.status(400).json({ error: "File is not recognized as a valid audio file" });
     }
-    
+
     // Parse metadata if provided
     const metadataStr = req.body.metadata;
     let metadata: any = {};
@@ -160,14 +202,14 @@ app.patch("/api/tracks/:id", (req, res) => {
   if (trackIdx !== -1) {
     const track = tracks[trackIdx];
     const { title, artist, album, genre, favorite } = req.body;
-    
+
     if (title !== undefined) track.title = title;
     if (artist !== undefined) track.artist = artist;
     if (album !== undefined) track.album = album;
     if (genre !== undefined) track.genre = genre;
     if (favorite !== undefined) track.favorite = favorite;
     track.updatedAt = Date.now();
-    
+
     saveDb();
     res.json(track);
   } else {
@@ -247,6 +289,8 @@ interface DownloadJob {
   outputFilename?: string;
   actualBitrate?: number;
   actualDuration?: number;
+  speed?: string;
+  eta?: string;
   createdAt: number;
   updatedAt: number;
   completedAt?: number;
@@ -327,239 +371,452 @@ const cleanupOldAndPartialJobs = () => {
 
 cleanupOldAndPartialJobs();
 
+// Sanitize and truncate generated filenames for safe filesystem usage.
+const buildSafeBasename = (title: string, fallback: string): string => {
+   const cleaned = sanitize(title || '').replace(/\s+/g, ' ').trim();
+   const safe = cleaned || fallback;
+   if (safe.length <= FILENAME_MAX_LEN) return safe;
+   return safe.slice(0, FILENAME_MAX_LEN).trim();
+};
+
+// Pick a non-colliding output filename base by appending a counter if needed.
+const ensureUniqueBase = (base: string, ext: string): string => {
+   let candidate = base;
+   let counter = 1;
+   while (fs.existsSync(path.join(UPLOADS_DIR, `${candidate}.${ext}`))) {
+      counter += 1;
+      candidate = `${base}-${counter}`;
+      if (counter > 9999) {
+         candidate = `${base}-${Date.now()}`;
+         break;
+      }
+   }
+   return candidate;
+};
+
+// Map common yt-dlp/network failure messages to engine error codes.
+const classifyDownloadFailure = (msg: string): EngineErrorCode => {
+   const m = msg.toLowerCase();
+   if (m.includes('unsupported url') || m.includes('no video formats') || m.includes('no media') || m.includes('is not a valid url')) {
+      return 'unsupported_source';
+   }
+   if (m.includes('ffmpeg') || m.includes('postprocess')) {
+      return 'conversion_failed';
+   }
+   if (m.includes('enoent') || m.includes('command not found')) {
+      return 'engine_missing';
+   }
+   return 'download_failed';
+};
+
 const runDownloadEngine = async (jobId: string) => {
     const job = downloadJobs.find(j => j.id === jobId);
     if (!job || job.status !== 'queued') return;
-    
+
     job.status = 'analyzing';
     job.phase = 'Analyzing format & permissions...';
+    job.progress = 2;
     job.updatedAt = Date.now();
     job.startedAt = Date.now();
     job.logs = [];
+    job.error = undefined;
+    job.errorCode = undefined;
+    job.speed = undefined;
+    job.eta = undefined;
     saveJobsDb();
 
     const log = (msg: string) => {
         if (job.logs) job.logs.push(`[${new Date().toISOString()}] ${msg}`);
     };
-    
+
+    const wasCancelled = () => {
+       const j = downloadJobs.find(x => x.id === jobId);
+       return j && j.status === 'cancelled';
+    };
+
     log(`Started processing: ${job.sourceUrl}`);
-    
+
     let actualFile = '';
-    
+    let outputBase = '';
+
     try {
-        const meta = await youtubedl(job.sourceUrl, {
-            dumpSingleJson: true,
-            noWarnings: true,
-            noCheckCertificates: true,
-            geoBypass: true,
-            quiet: true
-        });
-
-        const currentJobCheck1 = downloadJobs.find(j => j.id === jobId);
-        if (currentJobCheck1 && currentJobCheck1.status === 'cancelled') return;
-
-        const title = (meta as any).title || 'Unknown Title';
-        const artist = (meta as any).uploader || 'Unknown Artist';
-        const durationStr = (meta as any).duration || 0;
-        
-        log(`Title: ${title}, Artist: ${artist}, Duration: ${durationStr}s`);
-
-        if (parseInt(durationStr as any) > MAX_DOWNLOAD_DURATION_SECONDS) {
-             throw new Error(`Media duration exceeds maximum limit of ${MAX_DOWNLOAD_DURATION_SECONDS} seconds.`);
+        // ---- Phase 1: analyzing (0-10) ----
+        let meta: any;
+        try {
+            meta = await youtubedl(job.sourceUrl, {
+                dumpSingleJson: true,
+                noWarnings: true,
+                noCheckCertificates: true,
+                geoBypass: true,
+                quiet: true
+            });
+        } catch (metaErr: any) {
+            const rawStderr: string = (metaErr && metaErr.stderr) ? String(metaErr.stderr) : '';
+            const rawMsg: string = (metaErr && metaErr.message) || String(metaErr);
+            const combined = `${rawMsg} ${rawStderr}`.trim();
+            const lower = combined.toLowerCase();
+            const sysCode: string = (metaErr && metaErr.code) ? String(metaErr.code) : '';
+            if (sysCode === 'ENOENT' || lower.includes('enoent') || lower.includes('command not found') || lower.includes('no such file')) {
+                throw new EngineError('engine_missing', `yt-dlp binary is missing or not executable: ${combined || sysCode}`);
+            }
+            if (lower.includes('unsupported url') || lower.includes('is not a valid url') || lower.includes('no video formats')) {
+                throw new EngineError('unsupported_source', `Source is not supported by the engine: ${combined.slice(0, 400)}`);
+            }
+            throw new EngineError('metadata_failed', `Failed to read metadata: ${combined.slice(0, 400) || sysCode || 'unknown error'}`);
         }
 
-        const cleanTitle = sanitize(title);
-        const fileNameBase = `${job.id}-${cleanTitle}`;
-        const outputTemplate = path.join(UPLOADS_DIR, `${fileNameBase}.%(ext)s`);
+        if (wasCancelled()) { throw new EngineError('cancelled', 'Job cancelled before download'); }
 
+        const title: string = (meta && meta.title) || 'Unknown Title';
+        const artist: string = (meta && meta.uploader) || (meta && meta.channel) || 'Unknown Artist';
+        const durationStr = (meta && meta.duration) || 0;
+        const metaDuration = parseFloat(durationStr as any) || 0;
+
+        log(`Title: ${title}, Artist: ${artist}, Duration: ${metaDuration}s`);
+        job.progress = 8;
+        job.updatedAt = Date.now();
+        saveJobsDb();
+
+        if (metaDuration > MAX_DOWNLOAD_DURATION_SECONDS) {
+            throw new EngineError(
+                'duration_limit_exceeded',
+                `Media duration (${metaDuration}s) exceeds maximum limit of ${MAX_DOWNLOAD_DURATION_SECONDS}s.`
+            );
+        }
+
+        // Pre-check size from metadata if available
+        const metaSize = (meta && (meta.filesize || meta.filesize_approx)) || 0;
+        if (metaSize && metaSize > MAX_DOWNLOAD_SIZE_MB * 1024 * 1024) {
+            throw new EngineError(
+                'size_limit_exceeded',
+                `Estimated source size (${Math.round(metaSize / 1024 / 1024)}MB) exceeds limit of ${MAX_DOWNLOAD_SIZE_MB}MB.`
+            );
+        }
+
+        const safeTitle = buildSafeBasename(title, 'audio');
+        const baseCandidate = `${job.id}-${safeTitle}`;
+        outputBase = ensureUniqueBase(baseCandidate, job.format);
+        const outputTemplate = path.join(UPLOADS_DIR, `${outputBase}.%(ext)s`);
+
+        // ---- Phase 2: downloading (10-75) ----
         job.status = 'downloading';
         job.phase = 'Downloading...';
+        job.progress = 10;
         job.updatedAt = Date.now();
         saveJobsDb();
 
         const ffmpegDir = path.dirname(ffmpegInstaller.path);
-        
-        const subprocess = youtubedl.exec(job.sourceUrl, {
+
+        // Bitrate mapping: explicitly pass kbps to both yt-dlp (--audio-quality)
+        // and the ffmpeg post-processor (-b:a) so the requested 128/192/256/320
+        // is honored. WAV is uncompressed PCM, so bitrate doesn't apply.
+        const ytdlOpts: Record<string, any> = {
             extractAudio: true,
             audioFormat: job.format,
-            audioQuality: job.bitrate,
             output: outputTemplate,
             noWarnings: true,
             noCheckCertificates: true,
             ffmpegLocation: ffmpegDir,
-        });
+            maxFilesize: `${MAX_DOWNLOAD_SIZE_MB}m`,
+        };
+
+        if (job.format !== 'wav') {
+            ytdlOpts.audioQuality = `${job.bitrate}K`;
+            // postprocessorArgs: youtube-dl-exec converts arrays into repeated flags.
+            ytdlOpts.postprocessorArgs = `ffmpeg:-b:a ${job.bitrate}k`;
+        }
+
+        const subprocess = youtubedl.exec(job.sourceUrl, ytdlOpts as any);
 
         jobProcesses.set(job.id, subprocess);
 
-        const handleProcessOutput = (data: Buffer) => {
-            const output = data.toString();
-            // Try to parse progress: [download]  12.5% of ...
-            const dlMatch = output.match(/\[download\]\s+(\d+\.\d+)%/);
+        const updateProgressFromOutput = (output: string) => {
+            // [download]  12.5% of  3.45MiB at 1.23MiB/s ETA 00:02
+            // [download]  12% of  3.45MiB at 1.23MiB/s ETA 00:02
+            // [download]  100% of 3.45MiB in 00:03
+            const dlMatch = output.match(/\[download\]\s+(\d+(?:\.\d+)?)%(?:\s+of\s+\S+)?(?:\s+at\s+(\S+))?(?:\s+ETA\s+(\S+))?/);
             if (dlMatch) {
-               job.progress = parseFloat(dlMatch[1]);
-               job.phase = 'Downloading...';
+                const pct = Math.min(100, Math.max(0, parseFloat(dlMatch[1])));
+                // Map raw 0-100 download percent to weighted 10-75 band
+                job.progress = Math.round(10 + (pct * 0.65));
+                job.phase = 'Downloading...';
+                if (dlMatch[2]) job.speed = dlMatch[2];
+                if (dlMatch[3]) job.eta = dlMatch[3];
+                job.updatedAt = Date.now();
             }
-            if (output.includes('[ExtractAudio]')) {
-               job.progress = 100;
-               job.phase = 'Converting format (ffmpeg)...';
-               log('Extraction started');
+
+            if ((output.includes('[ExtractAudio]') || output.includes('Destination:')) && (job.status as string) !== 'converting') {
+                job.status = 'converting';
+                job.phase = 'Converting format (ffmpeg)...';
+                job.progress = Math.max(job.progress, 78);
+                job.speed = undefined;
+                job.eta = undefined;
+                log('Conversion started');
+            }
+
+            // ffmpeg lines often contain "size= ... time= ... bitrate="
+            const ffMatch = output.match(/time=([\d:.]+)/);
+            if (ffMatch && (job.status as string) === 'converting') {
+                // Bump within 78-94 band as ffmpeg makes progress
+                job.progress = Math.min(94, Math.max(job.progress, 78));
+                job.updatedAt = Date.now();
             }
         };
 
-        subprocess.stdout?.on('data', handleProcessOutput);
+        subprocess.stdout?.on('data', (data: Buffer) => {
+            const str = data.toString();
+            updateProgressFromOutput(str);
+        });
         subprocess.stderr?.on('data', (data: Buffer) => {
-           handleProcessOutput(data);
-           const str = data.toString().trim();
-           if (str && !str.includes('%')) log(`[stderr] ${str}`);
+            const str = data.toString();
+            updateProgressFromOutput(str);
+            const trimmed = str.trim();
+            // Log non-progress noise (lines without % indicator)
+            if (trimmed && !/\[download\]\s+\d+(?:\.\d+)?%/.test(trimmed)) {
+                log(`[stderr] ${trimmed.slice(0, 500)}`);
+            }
         });
 
-        await subprocess;
-        jobProcesses.delete(job.id);
-        log('Download/conversion complete');
-
-        const currentJobCheck2 = downloadJobs.find(j => j.id === jobId);
-        if (currentJobCheck2 && currentJobCheck2.status === 'cancelled') return;
-
-        const expectedFile = `${fileNameBase}.${job.format}`;
-        actualFile = expectedFile;
-        // Check finding actual generated file
-        if (!fs.existsSync(path.join(UPLOADS_DIR, expectedFile))) {
-            const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(`${fileNameBase}.`));
-            if (files.length > 0) {
-                actualFile = files[0];
-            } else {
-                throw new Error('Output file not found after conversion. It may have failed or timed out.');
-            }
+        try {
+            await subprocess;
+        } catch (procErr: any) {
+            jobProcesses.delete(job.id);
+            if (wasCancelled()) { throw new EngineError('cancelled', 'Job cancelled during download'); }
+            const rawStderr: string = (procErr && procErr.stderr) ? String(procErr.stderr) : '';
+            const rawMsg: string = (procErr && procErr.message) ? String(procErr.message) : String(procErr);
+            const combined = `${rawMsg} ${rawStderr}`.trim();
+            const sysCode: string = (procErr && procErr.code) ? String(procErr.code) : '';
+            const code: EngineErrorCode = sysCode === 'ENOENT' ? 'engine_missing' : classifyDownloadFailure(combined);
+            throw new EngineError(code, (combined || sysCode || 'unknown error').slice(0, 400));
         }
-        
+        jobProcesses.delete(job.id);
+        log('Download/conversion process exited cleanly');
+
+        if (wasCancelled()) { throw new EngineError('cancelled', 'Job cancelled after download'); }
+
+        // Move into converting band briefly if we never hit it.
+        // Cast through string because progress callbacks may have flipped status to 'converting'
+        // already, and TS's literal-type narrowing here would otherwise rule that out.
+        if ((job.status as string) !== 'converting') {
+            job.status = 'converting';
+            job.phase = 'Finalizing conversion...';
+            job.progress = Math.max(job.progress, 80);
+            job.updatedAt = Date.now();
+            saveJobsDb();
+        }
+
+        // ---- Phase 3: locate and validate output ----
+        const expectedFile = `${outputBase}.${job.format}`;
+        actualFile = expectedFile;
+        if (!fs.existsSync(path.join(UPLOADS_DIR, expectedFile))) {
+            // yt-dlp may produce a different extension; pick the first match for this base.
+            const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(`${outputBase}.`));
+            if (files.length === 0) {
+                throw new EngineError('conversion_failed', 'Output file not found after conversion.');
+            }
+            actualFile = files[0];
+        }
+
         log(`Found output file: ${actualFile}`);
         const fullPath = path.join(UPLOADS_DIR, actualFile);
         const stat = fs.statSync(fullPath);
-        
-        if (stat.size < 1024) {
-             throw new Error('Output file is suspiciously small (< 1KB). Extraction likely failed.');
+
+        if (stat.size < MIN_DOWNLOAD_SIZE_BYTES) {
+            throw new EngineError(
+                'verification_failed',
+                `Output file is suspiciously small (${stat.size} bytes < ${MIN_DOWNLOAD_SIZE_BYTES} bytes). Extraction likely failed.`
+            );
         }
         if (stat.size > MAX_DOWNLOAD_SIZE_MB * 1024 * 1024) {
-             throw new Error(`Output file exceeds maximum size limit of ${MAX_DOWNLOAD_SIZE_MB}MB.`);
+            throw new EngineError(
+                'size_limit_exceeded',
+                `Output file (${Math.round(stat.size / 1024 / 1024)}MB) exceeds maximum size limit of ${MAX_DOWNLOAD_SIZE_MB}MB.`
+            );
         }
 
+        // Extension should match requested format, unless yt-dlp normalised to a related container.
+        const finalExt = path.extname(actualFile).slice(1).toLowerCase();
+        const safeNormalizations: Record<string, string[]> = {
+            mp3: ['mp3'],
+            wav: ['wav'],
+            m4a: ['m4a', 'mp4', 'aac'],
+        };
+        const allowedExts = safeNormalizations[job.format] || [job.format];
+        if (!allowedExts.includes(finalExt)) {
+            throw new EngineError(
+                'verification_failed',
+                `Final extension .${finalExt} does not match requested format .${job.format}.`
+            );
+        }
+
+        // ---- Phase 4: indexing/verifying (95-99 until Track is created) ----
         job.status = 'indexing';
-        job.phase = 'Verifying and Finalizing track...';
+        job.phase = 'Verifying and finalizing track...';
+        job.progress = 96;
         job.updatedAt = Date.now();
         saveJobsDb();
-        
-        // Verify with ffprobe
-        let actualDuration = parseInt(durationStr as any) || 0;
-        let actualBitrate = job.bitrate;
+
+        let actualDuration = 0;
+        let actualBitrate = 0;
         try {
-             log(`Running ffprobe on ${actualFile}...`);
-             const probeResult = await execFileAsync(ffprobeStatic.path, [
-                 '-v', 'quiet',
-                 '-print_format', 'json',
-                 '-show_format',
-                 '-show_streams',
-                 fullPath
-             ]);
-             const probeData = JSON.parse(probeResult.stdout);
-             const formatData = probeData.format;
-             if (formatData && formatData.duration) {
-                 actualDuration = parseFloat(formatData.duration);
-             }
-             if (formatData && formatData.bit_rate) {
-                 actualBitrate = Math.round(parseInt(formatData.bit_rate) / 1000);
-             }
-             log(`ffprobe ok: ${actualDuration}s, ${actualBitrate}kbps`);
-        } catch(probeErr: any) {
-             log(`ffprobe warning: ${probeErr.message}`);
-             // If ffprobe completely fails to read it, it might be corrupt
-             if (probeErr.message.includes('Invalid data found')) {
-                 throw new Error('Verification failed: output file is corrupt or not a valid audio format.');
-             }
+            log(`Running ffprobe on ${actualFile}...`);
+            const probeResult = await execFileAsync(ffprobeStatic.path, [
+                '-v', 'quiet',
+                '-print_format', 'json',
+                '-show_format',
+                '-show_streams',
+                fullPath
+            ]);
+            const probeData = JSON.parse(probeResult.stdout);
+            const formatData = probeData.format;
+            if (formatData && formatData.duration) {
+                actualDuration = parseFloat(formatData.duration);
+            }
+            if (formatData && formatData.bit_rate) {
+                actualBitrate = Math.round(parseInt(formatData.bit_rate) / 1000);
+            }
+            log(`ffprobe ok: ${actualDuration}s, ${actualBitrate}kbps`);
+        } catch (probeErr: any) {
+            throw new EngineError(
+                'verification_failed',
+                `ffprobe failed to read output: ${probeErr.message || probeErr}`
+            );
         }
-        
+
+        // Some legitimate streams (e.g. live recordings stripped to audio) may
+        // report duration=0; only fail when the format/source clearly should
+        // have had a duration.
+        const sourceShouldHaveDuration = metaDuration > 0;
+        if (sourceShouldHaveDuration && actualDuration <= 0) {
+            throw new EngineError(
+                'verification_failed',
+                'Output file has no readable duration but source advertised one.'
+            );
+        }
+
+        // WAV is uncompressed - skip bitrate-mismatch check.
+        if (job.format !== 'wav' && actualBitrate > 0) {
+            const requested = job.bitrate;
+            const drift = Math.abs(actualBitrate - requested) / requested;
+            if (drift > 0.20) {
+                log(`[warn] actual bitrate ${actualBitrate}kbps drifted ${Math.round(drift * 100)}% from requested ${requested}kbps`);
+            }
+        }
+
         job.outputFilename = actualFile;
         job.actualDuration = actualDuration;
-        job.actualBitrate = actualBitrate;
-        
-        const newTrack = {
+        job.actualBitrate = actualBitrate || job.bitrate;
+
+        // ---- Phase 5: create Track only after every check passes ----
+        const newTrack: Track = {
             id: crypto.randomUUID(),
-            title: cleanTitle,
+            title: buildSafeBasename(title, 'audio'),
             artist: artist,
             sourceType: 'url' as const,
             sourceUrl: job.sourceUrl,
             localUrl: `/api/stream/${actualFile}`,
             format: job.format,
-            bitrate: actualBitrate,
+            bitrate: job.actualBitrate,
             duration: actualDuration,
             size: stat.size,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             favorite: false
         };
-        
+
         tracks.unshift(newTrack);
         saveDb();
 
+        // Only now do we declare success at 100%
         job.status = 'complete';
         job.phase = 'Complete';
         job.progress = 100;
         job.resultTrackId = newTrack.id;
         job.completedAt = Date.now();
         job.updatedAt = Date.now();
+        job.speed = undefined;
+        job.eta = undefined;
         log('Job completed successfully');
         saveJobsDb();
 
     } catch (err: any) {
-        const currentJobCheck3 = downloadJobs.find(j => j.id === jobId);
-        if (currentJobCheck3 && currentJobCheck3.status === 'cancelled') return;
-        
         jobProcesses.delete(job.id);
-        job.status = 'failed';
-        job.phase = 'Failed';
-        job.error = err.message || 'Unknown error occurred during extraction';
-        job.errorCode = 'ERR_ENGINE';
-        job.progress = 0;
-        job.updatedAt = Date.now();
-        if (job.logs) job.logs.push(`[ERROR] ${job.error}`);
-        saveJobsDb();
-        
-        // Clean up partials if any
-        if (actualFile) {
-            const actualPath = path.join(UPLOADS_DIR, actualFile);
-            if (fs.existsSync(actualPath)) fs.unlinkSync(actualPath);
+
+        const isEngine = err instanceof EngineError;
+        const code: EngineErrorCode = isEngine ? err.code : 'download_failed';
+        const message: string = (err && err.message) || 'Unknown error occurred during extraction';
+
+        // If the failure was a user cancel, just mark cancelled (don't override existing cancellation state)
+        if (code === 'cancelled' || wasCancelled()) {
+            const j = downloadJobs.find(x => x.id === jobId);
+            if (j) {
+                j.status = 'cancelled';
+                j.phase = 'Cancelled';
+                j.errorCode = 'cancelled';
+                j.error = 'Cancelled';
+                j.updatedAt = Date.now();
+                log('Job ended due to cancellation');
+                saveJobsDb();
+            }
         } else {
-             // Try to cleanup based on id
-             try {
-                const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(`${job.id}-`));
-                for(const f of files) fs.unlinkSync(path.join(UPLOADS_DIR, f));
-             } catch(e) {}
+            job.status = 'failed';
+            job.phase = 'Failed';
+            job.error = message;
+            job.errorCode = code;
+            job.updatedAt = Date.now();
+            if (job.logs) job.logs.push(`[${new Date().toISOString()}] [ERROR ${code}] ${message}`);
+            saveJobsDb();
         }
+
+        // Clean up partials
+        try {
+            if (actualFile) {
+                const actualPath = path.join(UPLOADS_DIR, actualFile);
+                if (fs.existsSync(actualPath)) fs.unlinkSync(actualPath);
+            }
+            const prefix = outputBase || `${job.id}-`;
+            const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(prefix) || f.startsWith(`${job.id}-`));
+            for (const f of files) {
+                const p = path.join(UPLOADS_DIR, f);
+                if (fs.existsSync(p)) fs.unlinkSync(p);
+            }
+        } catch (e) {}
     }
 };
 
 // API: Create Download Job
 app.post("/api/download-jobs", (req, res) => {
    const { url, format, bitrate } = req.body;
-   
-   if (!url) return res.status(400).json({ error: "URL is required" });
+
+   if (!url || typeof url !== 'string') {
+       return res.status(400).json({ error: "URL is required", errorCode: 'invalid_url' });
+   }
+
+   let parsedUrl: URL;
    try {
-       const parsedUrl = new URL(url);
-       if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-           return res.status(400).json({ error: "URL must use http or https protocol" });
-       }
-       if (!parsedUrl.hostname) {
-           return res.status(400).json({ error: "URL must have a valid hostname" });
-       }
+       parsedUrl = new URL(url);
    } catch (e) {
-       return res.status(400).json({ error: "Invalid URL string provided" });
+       return res.status(400).json({ error: "Invalid URL string provided", errorCode: 'invalid_url' });
    }
-   
+   if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+       return res.status(400).json({ error: "URL must use http or https protocol", errorCode: 'invalid_url' });
+   }
+   if (!parsedUrl.hostname) {
+       return res.status(400).json({ error: "URL must have a valid hostname", errorCode: 'invalid_url' });
+   }
+   if (!isHostAllowed(parsedUrl.hostname)) {
+       return res.status(400).json({
+           error: `Host '${parsedUrl.hostname}' is not on the configured ALLOWED_DOWNLOAD_HOSTS list`,
+           errorCode: 'unsupported_source'
+       });
+   }
+
    if (!['mp3', 'wav', 'm4a'].includes(format)) {
-       return res.status(400).json({ error: "Invalid format" });
+       return res.status(400).json({ error: "Invalid format", errorCode: 'invalid_url' });
    }
-   
+
    if (![128, 192, 256, 320].includes(bitrate)) {
-       return res.status(400).json({ error: "Invalid bitrate" });
+       return res.status(400).json({ error: "Invalid bitrate", errorCode: 'invalid_url' });
    }
 
    const job: DownloadJob = {
@@ -573,10 +830,10 @@ app.post("/api/download-jobs", (req, res) => {
        createdAt: Date.now(),
        updatedAt: Date.now()
    };
-   
+
    downloadJobs.unshift(job);
    saveJobsDb();
-   
+
    res.json(job);
 });
 
@@ -584,7 +841,7 @@ app.post("/api/download-jobs", (req, res) => {
 app.post("/api/download-jobs/:id/start", (req, res) => {
    const job = downloadJobs.find(j => j.id === req.params.id);
    if (!job) return res.status(404).json({ error: "Job not found" });
-   
+
    if (job.status !== "queued") {
        return res.status(400).json({ error: "Job is not in queued state" });
    }
@@ -609,6 +866,13 @@ app.get("/api/download-jobs/:id", (req, res) => {
    else res.status(404).json({ error: "Job not found" });
 });
 
+// API: Get job logs only
+app.get("/api/download-jobs/:id/logs", (req, res) => {
+   const job = downloadJobs.find(j => j.id === req.params.id);
+   if (!job) return res.status(404).json({ error: "Job not found" });
+   res.json({ id: job.id, logs: job.logs || [] });
+});
+
 // API: Delete job
 app.delete("/api/download-jobs/:id", (req, res) => {
    const originalLen = downloadJobs.length;
@@ -631,7 +895,7 @@ app.delete("/api/download-jobs/:id", (req, res) => {
 app.post("/api/download-jobs/:id/retry", (req, res) => {
    const job = downloadJobs.find(j => j.id === req.params.id);
    if (!job) return res.status(404).json({ error: "Job not found" });
-   
+
    if (job.status !== 'failed' && job.status !== 'cancelled') {
        return res.status(400).json({ error: "Only failed or cancelled jobs can be retried." });
    }
@@ -639,16 +903,19 @@ app.post("/api/download-jobs/:id/retry", (req, res) => {
    if (jobProcesses.has(job.id)) {
        return res.status(409).json({ error: "Job is already running" });
    }
-   
+
    job.status = 'queued';
    job.phase = 'Queued';
    job.progress = 0;
    job.error = undefined;
+   job.errorCode = undefined;
+   job.speed = undefined;
+   job.eta = undefined;
    job.updatedAt = Date.now();
    saveJobsDb();
-   
+
    runDownloadEngine(job.id);
-   
+
    res.json(job);
 });
 
@@ -656,29 +923,30 @@ app.post("/api/download-jobs/:id/retry", (req, res) => {
 app.post("/api/download-jobs/:id/cancel", (req, res) => {
    const job = downloadJobs.find(j => j.id === req.params.id);
    if (!job) return res.status(404).json({ error: "Job not found" });
-   
+
    if (job.status === 'complete' || job.status === 'failed' || job.status === 'cancelled') {
        return res.status(400).json({ error: "Cannot cancel a job that is complete, failed, or already cancelled." });
    }
 
    job.status = 'cancelled';
    job.phase = 'Cancelled';
+   job.errorCode = 'cancelled';
    job.updatedAt = Date.now();
    if (job.logs) job.logs.push(`[${new Date().toISOString()}] Job cancelled by user.`);
    saveJobsDb();
-   
+
    const proc = jobProcesses.get(job.id);
    if (proc) {
        try { proc.kill('SIGTERM'); } catch(e) {}
        jobProcesses.delete(job.id);
    }
-   
+
    // Cleanup partial files
    try {
       const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(`${job.id}-`));
       for(const f of files) fs.unlinkSync(path.join(UPLOADS_DIR, f));
    } catch(e) {}
-   
+
    res.json(job);
 });
 
