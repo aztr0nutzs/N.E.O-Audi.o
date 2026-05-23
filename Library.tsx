@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X } from 'lucide-react';
@@ -30,6 +32,7 @@ const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title
 };
 
 export function Library() {
+  const location = useLocation();
   const tracks = useLibraryStore(state => state.tracks);
   const playlists = useLibraryStore(state => state.playlists);
   const removeTrack = useLibraryStore(state => state.removeTrack);
@@ -156,6 +159,21 @@ export function Library() {
      if (!search) return playlists;
      return playlists.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
   }, [playlists, search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const trackId = params.get('trackId');
+    const q = params.get('q');
+    if (trackId || q) {
+      setView('downloaded');
+    }
+    if (q) {
+      setSearch(q);
+    }
+    if (trackId) {
+      setSelectedId(trackId);
+    }
+  }, [location.search]);
 
   return (
     <div className="max-w-md md:max-w-4xl mx-auto min-h-[calc(100vh-100px)] p-2 md:p-4 flex flex-col items-center relative">
