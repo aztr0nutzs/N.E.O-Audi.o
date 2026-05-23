@@ -5,7 +5,8 @@ import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useAppStore } from '../store/useAppStore';
-import { SUPPORTED_FORMATS } from '../types';
+import { useLibraryStore } from '../store/useLibraryStore';
+import { SUPPORTED_FORMATS, type DownloadJob } from '../types';
 import { useNavigate } from 'react-router-dom';
 
 export function Downloader() {
@@ -49,8 +50,13 @@ export function Downloader() {
     });
 
     if (duplicate) {
-      toast.error(`Duplicate URL already in queue (${duplicate.status.toUpperCase()}).`);
-      return;
+      const proceed = typeof window !== 'undefined'
+        ? window.confirm(`This URL is already in the queue as ${duplicate.status.toUpperCase()}. Add another job anyway?`)
+        : true;
+      if (!proceed) {
+        toast(`Skipped duplicate (${duplicate.status.toUpperCase()}).`);
+        return;
+      }
     }
 
     const newJob = await addJob(url, format, bitrate);
@@ -62,6 +68,18 @@ export function Downloader() {
 
   const toggleLogs = (id: string) => {
     setExpandedLogs(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handlePlay = async (job: DownloadJob) => {
+    if (!job.resultTrackId) return;
+    const lib = useLibraryStore.getState();
+    if (!lib.tracks.find(t => t.id === job.resultTrackId)) {
+      await lib.loadLibrary();
+    }
+    const queueIds = jobs
+      .filter(j => j.status === 'complete' && j.resultTrackId)
+      .map(j => j.resultTrackId!) as string[];
+    playTrack(job.resultTrackId, queueIds);
   };
 
   const phaseLabel = (phase: string, status: string) => {
@@ -273,7 +291,7 @@ export function Downloader() {
                         </button>
                         {expandedLogs[job.id] && (
                           <div className="mt-1 text-[9px] font-mono text-gray-400 bg-black/80 border border-neo-cyan/20 rounded p-1.5 max-h-40 overflow-y-auto leading-snug whitespace-pre-wrap break-words">
-                            {job.logs.map((l, i) => <div key={i}>{l}</div>)}
+                            {job.logs.slice(-20).map((l, i) => <div key={i}>{l}</div>)}
                           </div>
                         )}
                       </div>
@@ -285,6 +303,7 @@ export function Downloader() {
                          <>
                            <button onClick={() => startJob(job.id)} className="text-[9px] text-neo-lime border border-neo-lime/50 px-2 py-1 rounded hover:bg-neo-lime/20 transition-colors uppercase font-bold tracking-wide">START</button>
                            <button onClick={() => cancelJob(job.id)} className="text-[9px] text-neo-magenta border border-neo-magenta/50 px-2 py-1 rounded hover:bg-neo-magenta/20 transition-colors uppercase font-bold tracking-wide">CANCEL</button>
+                           <button onClick={() => removeJob(job.id)} className="text-[9px] text-red-500 border border-red-500/50 px-2 py-1 rounded hover:bg-red-500/20 transition-colors uppercase font-bold tracking-wide">REMOVE</button>
                          </>
                        )}
                        {(job.status === 'failed' || job.status === 'cancelled') && (
@@ -299,7 +318,7 @@ export function Downloader() {
                        {job.status === 'complete' && (
                          <>
                           {job.resultTrackId && (
-                             <button onClick={() => playTrack(job.resultTrackId!)} className="text-[9px] text-black bg-neo-cyan px-2 py-1 rounded hover:bg-white transition-colors uppercase font-bold tracking-wide flex items-center gap-1">
+                             <button onClick={() => handlePlay(job)} className="text-[9px] text-black bg-neo-cyan px-2 py-1 rounded hover:bg-white transition-colors uppercase font-bold tracking-wide flex items-center gap-1">
                                <Play className="w-3 h-3" /> PLAY
                              </button>
                            )}

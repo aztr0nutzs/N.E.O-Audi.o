@@ -46,6 +46,7 @@
     "@types/mime-types": "^3.0.1",
     "@types/node": "^22.14.0",
     "@types/supertest": "^6.0.3",
+    "@vitest/mocker": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "jsdom": "^25.0.1",
@@ -54,6 +55,6 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.4"
   }
 }
