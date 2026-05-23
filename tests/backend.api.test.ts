@@ -19,18 +19,20 @@ describe('POST /api/download-jobs validation', () => {
     expect(res.body.errorCode).toBe('invalid_url');
   });
 
-  it('rejects invalid format with 400', async () => {
+  it('rejects invalid format with 400 + errorCode invalid_format', async () => {
     const res = await request(app)
       .post('/api/download-jobs')
       .send({ url: 'https://example.com/audio.mp3', format: 'exe', bitrate: 320 });
     expect(res.status).toBe(400);
+    expect(res.body.errorCode).toBe('invalid_format');
   });
 
-  it('rejects invalid bitrate with 400', async () => {
+  it('rejects invalid bitrate with 400 + errorCode invalid_bitrate', async () => {
     const res = await request(app)
       .post('/api/download-jobs')
       .send({ url: 'https://example.com/audio.mp3', format: 'mp3', bitrate: 999 });
     expect(res.status).toBe(400);
+    expect(res.body.errorCode).toBe('invalid_bitrate');
   });
 
   it('creates a queued job for a valid request', async () => {

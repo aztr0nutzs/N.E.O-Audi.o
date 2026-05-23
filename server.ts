@@ -1033,11 +1033,11 @@ app.post("/api/download-jobs", (req, res) => {
    }
 
    if (!(SUPPORTED_FORMATS as readonly string[]).includes(format)) {
-       return res.status(400).json({ error: "Invalid format", errorCode: 'invalid_url' });
+       return res.status(400).json({ error: "Invalid format", errorCode: 'invalid_format' });
    }
 
    if (![128, 192, 256, 320].includes(bitrate)) {
-       return res.status(400).json({ error: "Invalid bitrate", errorCode: 'invalid_url' });
+       return res.status(400).json({ error: "Invalid bitrate", errorCode: 'invalid_bitrate' });
    }
 
    const job: DownloadJob = {
