@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { usePlayerStore } from '../usePlayerStore';
+import { usePlayerStore } from '../src/store/usePlayerStore';
 
 describe('usePlayerStore', () => {
   beforeEach(() => {

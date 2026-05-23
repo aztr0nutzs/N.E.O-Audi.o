@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { PRESETS, useEqualizerStore } from '../useEqualizerStore';
+import { PRESETS, useEqualizerStore } from '../src/store/useEqualizerStore';
 
 describe('useEqualizerStore', () => {
   beforeEach(() => {
