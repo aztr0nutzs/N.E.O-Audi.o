@@ -15,17 +15,27 @@ interface DownloadState {
 }
 
 let pollingInterval: any = null;
+const ACTIVE_STATUSES: JobStatus[] = ['queued', 'analyzing', 'downloading', 'converting', 'indexing'];
 
 export const useDownloadStore = create<DownloadState>((set, get) => {
-  const startPolling = () => {
+  const hasActiveJobs = (jobs: DownloadJob[]) => jobs.some((job) => ACTIVE_STATUSES.includes(job.status));
+
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+  };
+
+  const startPolling = (intervalMs = 2000) => {
     if (pollingInterval) return;
     pollingInterval = setInterval(() => {
       get().loadJobs();
-    }, 2000);
+    }, intervalMs);
   };
   
   // start polling immediately
-  if (typeof window !== 'undefined') startPolling();
+  if (typeof window !== 'undefined') startPolling(5000);
 
   return {
     jobs: [],
@@ -44,6 +54,13 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
            toast.success("Download complete and added to Library!");
         }
 
+        if (hasActiveJobs(jobs)) {
+          startPolling(2000);
+        } else {
+          stopPolling();
+          startPolling(7000);
+        }
+
         set({ jobs });
       } catch (err) {
         console.error(err);
@@ -54,7 +71,8 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
       try {
         const newJob = await api.addDownloadJob(url, format, bitrate);
         set((state) => ({ jobs: [newJob, ...state.jobs.filter(j => j.id !== newJob.id)] }));
-        startPolling();
+        stopPolling();
+        startPolling(2000);
         return newJob;
       } catch (err: any) {
         toast.error(`Failed to add job: ${err.message}`);
@@ -75,7 +93,8 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
       try {
           const job = await api.startDownloadJob(id);
           set((state) => ({ jobs: state.jobs.map(j => j.id === id ? job : j) }));
-          startPolling();
+          stopPolling();
+          startPolling(2000);
       } catch (err: any) {
           toast.error(`Start failed: ${err.message}`);
       }
@@ -85,7 +104,8 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
       try {
           const job = await api.retryDownloadJob(id);
           set((state) => ({ jobs: state.jobs.map(j => j.id === id ? job : j) }));
-          startPolling();
+          stopPolling();
+          startPolling(2000);
       } catch (err: any) {
           toast.error(`Retry failed: ${err.message}`);
       }
