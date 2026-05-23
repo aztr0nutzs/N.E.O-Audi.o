@@ -15,13 +15,17 @@ export function Downloader() {
   const [format, setFormat] = useState(settings.defaultFormat || 'mp3');
   const [bitrate, setBitrate] = useState(settings.defaultBitrate || 320);
   
-  const { jobs, loadJobs, addJob, startJob, retryJob, removeJob, cancelJob } = useDownloadStore();
+  const { jobs, loadJobs, addJob, startJob, retryJob, removeJob, cancelJob, beginPolling, endPolling } = useDownloadStore();
   const playTrack = usePlayerStore(state => state.playTrack);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadJobs();
-  }, [loadJobs]);
+    beginPolling();
+    return () => {
+      endPolling();
+    };
+  }, [loadJobs, beginPolling, endPolling]);
 
   const isValidHttpUrl = (s: string): boolean => {
     try {

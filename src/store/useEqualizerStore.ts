@@ -21,7 +21,8 @@ export const PRESETS: Record<string, number[]> = {
   'Retro Synth': [6, 5, 2, -2, -4, 0, 2, 4, 6, 7],
 };
 
-const savedCustomStr = localStorage.getItem('neo-custom-preset');
+const safeLocalStorage = (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') ? localStorage : null;
+const savedCustomStr = safeLocalStorage ? safeLocalStorage.getItem('neo-custom-preset') : null;
 if (savedCustomStr) {
    try {
       PRESETS['Custom'] = JSON.parse(savedCustomStr);
@@ -71,6 +72,8 @@ export const useEqualizerStore = create<EqualizerState>((set, get) => ({
   saveCustomPreset: () => {
     const { bandValues } = get();
     PRESETS['Custom'] = [...bandValues];
-    localStorage.setItem('neo-custom-preset', JSON.stringify(PRESETS['Custom']));
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem('neo-custom-preset', JSON.stringify(PRESETS['Custom']));
+    }
   }
 }));

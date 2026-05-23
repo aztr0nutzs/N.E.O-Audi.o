@@ -12,6 +12,8 @@ interface DownloadState {
   startJob: (id: string) => Promise<void>;
   retryJob: (id: string) => Promise<void>;
   cancelJob: (id: string) => Promise<void>;
+  beginPolling: () => void;
+  endPolling: () => void;
 }
 
 let pollingInterval: any = null;
@@ -33,9 +35,6 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
       get().loadJobs();
     }, intervalMs);
   };
-  
-  // start polling immediately
-  if (typeof window !== 'undefined') startPolling(5000);
 
   return {
     jobs: [],
@@ -118,6 +117,15 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
       } catch (err: any) {
         toast.error(`Cancel failed: ${err.message}`);
       }
+    },
+
+    beginPolling: () => {
+      if (pollingInterval) return;
+      startPolling(5000);
+    },
+
+    endPolling: () => {
+      stopPolling();
     }
   };
 });

@@ -4,7 +4,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../src/store/useDownloadStore', () => ({
-  useDownloadStore: () => ({ jobs: [], loadJobs: vi.fn(), addJob: vi.fn(), startJob: vi.fn(), retryJob: vi.fn(), removeJob: vi.fn(), cancelJob: vi.fn() })
+  useDownloadStore: () => ({ jobs: [], loadJobs: vi.fn(), addJob: vi.fn(), startJob: vi.fn(), retryJob: vi.fn(), removeJob: vi.fn(), cancelJob: vi.fn(), beginPolling: vi.fn(), endPolling: vi.fn() })
 }));
 vi.mock('../src/store/usePlayerStore', () => ({ usePlayerStore: () => vi.fn() }));
 vi.mock('../src/store/useAppStore', () => ({ useAppStore: (sel: any) => sel({ settings: { defaultFormat: 'mp3', defaultBitrate: 320 } }) }));
