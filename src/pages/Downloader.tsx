@@ -6,8 +6,10 @@ import toast from 'react-hot-toast';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useAppStore } from '../store/useAppStore';
 import { SUPPORTED_FORMATS } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 export function Downloader() {
+  const navigate = useNavigate();
   const settings = useAppStore(state => state.settings);
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState(settings.defaultFormat || 'mp3');
@@ -36,6 +38,17 @@ export function Downloader() {
       return;
     }
 
+    const normalizedUrl = url.trim().toLowerCase();
+    const duplicate = jobs.find((job) => {
+      const existingUrl = (job.sourceUrl || '').trim().toLowerCase();
+      return existingUrl === normalizedUrl && job.status !== 'failed' && job.status !== 'cancelled';
+    });
+
+    if (duplicate) {
+      toast.error(`Duplicate URL already in queue (${duplicate.status.toUpperCase()}).`);
+      return;
+    }
+
     const newJob = await addJob(url, format, bitrate);
     if (newJob) {
       await startJob(newJob.id);
@@ -45,6 +58,17 @@ export function Downloader() {
 
   const toggleLogs = (id: string) => {
     setExpandedLogs(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const phaseLabel = (phase: string, status: string) => {
+    if (status === 'complete') return 'complete';
+    const normalized = (phase || status || 'queued').toLowerCase();
+    if (normalized.includes('queue')) return 'queued';
+    if (normalized.includes('analy')) return 'analyzing';
+    if (normalized.includes('download')) return 'downloading';
+    if (normalized.includes('convert') || normalized.includes('transcod')) return 'converting';
+    if (normalized.includes('verif') || normalized.includes('index')) return 'verifying';
+    return normalized;
   };
 
   return (
@@ -201,7 +225,7 @@ export function Downloader() {
                     
                     <div className="flex justify-between text-[9px] text-gray-500 uppercase tracking-widest font-bold">
                         <span>{job.format} / {job.actualBitrate || job.bitrate}kbps</span>
-                        <span className="text-gray-400 max-w-[50%] truncate text-right">{job.phase}</span>
+                        <span className="text-gray-400 max-w-[50%] truncate text-right">{phaseLabel(job.phase, job.status)}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -240,7 +264,7 @@ export function Downloader() {
                         >
                           {expandedLogs[job.id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                           <Terminal className="w-3 h-3" />
-                          <span>{expandedLogs[job.id] ? 'Hide Logs' : 'Show Logs'}</span>
+                          <span>{expandedLogs[job.id] ? 'HIDE LOGS' : 'SHOW LOGS'}</span>
                           <span className="text-gray-500 normal-case">({job.logs.length})</span>
                         </button>
                         {expandedLogs[job.id] && (
@@ -270,11 +294,17 @@ export function Downloader() {
                        )}
                        {job.status === 'complete' && (
                          <>
-                           {job.resultTrackId && (
+                          {job.resultTrackId && (
                              <button onClick={() => playTrack(job.resultTrackId!)} className="text-[9px] text-black bg-neo-cyan px-2 py-1 rounded hover:bg-white transition-colors uppercase font-bold tracking-wide flex items-center gap-1">
                                <Play className="w-3 h-3" /> PLAY
                              </button>
                            )}
+                           <button
+                             onClick={() => navigate(`/library?trackId=${encodeURIComponent(job.resultTrackId || '')}&q=${encodeURIComponent(job.metadata?.title || '')}`)}
+                             className="text-[9px] text-neo-lime border border-neo-lime/50 px-2 py-1 rounded hover:bg-neo-lime/20 transition-colors uppercase font-bold tracking-wide"
+                           >
+                             OPEN LIBRARY
+                           </button>
                            <button onClick={() => removeJob(job.id)} className="text-[9px] text-red-500 border border-red-500/50 px-2 py-1 rounded hover:bg-red-500/20 transition-colors uppercase font-bold tracking-wide">REMOVE</button>
                          </>
                        )}
