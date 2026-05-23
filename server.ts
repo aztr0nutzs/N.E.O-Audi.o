@@ -380,9 +380,8 @@ app.patch("/api/tracks/:id", (req, res) => {
 
 // API: Stream file
 app.get("/api/stream/:filename", (req, res) => {
-  const filename = path.basename(req.params.filename);
-  const file = path.join(UPLOADS_DIR, filename);
-  if (!fs.existsSync(file)) return res.status(404).send('Not found');
+  const file = safeResolveUploadPath(req.params.filename);
+  if (!file || !fs.existsSync(file)) return res.status(404).send('Not found');
 
   const stat = fs.statSync(file);
   const fileSize = stat.size;
@@ -421,9 +420,9 @@ app.delete("/api/tracks/:id", (req, res) => {
     const track = tracks[trackIdx];
     if (track.localUrl.startsWith('/api/stream/')) {
         const filename = path.basename(track.localUrl);
-        const filepath = path.join(UPLOADS_DIR, filename);
-        if (fs.existsSync(filepath) && filepath.startsWith(UPLOADS_DIR)) {
-             fs.unlinkSync(filepath);
+        const filepath = safeResolveUploadPath(filename);
+        if (filepath && fs.existsSync(filepath)) {
+             unlinkSafely(filepath);
         }
     }
     tracks.splice(trackIdx, 1);
@@ -461,6 +460,74 @@ interface DownloadJob {
 let downloadJobs: DownloadJob[] = [];
 const jobProcesses = new Map<string, any>();
 
+// --- Lifecycle helpers -----------------------------------------------------
+const ACTIVE_JOB_STATUSES: readonly JobStatus[] = ['queued', 'analyzing', 'downloading', 'converting', 'indexing'];
+const TERMINAL_JOB_STATUSES: readonly JobStatus[] = ['complete', 'failed', 'cancelled'];
+
+const isActiveJobStatus = (status: JobStatus): boolean => ACTIVE_JOB_STATUSES.includes(status);
+const isTerminalJobStatus = (status: JobStatus): boolean => TERMINAL_JOB_STATUSES.includes(status);
+
+const UPLOADS_DIR_ABS = path.resolve(UPLOADS_DIR);
+
+// Resolve a filename against UPLOADS_DIR_ABS, returning null when the result
+// would escape the uploads directory. The caller must treat null as "do not touch".
+const safeResolveUploadPath = (filename: string): string | null => {
+   if (typeof filename !== 'string' || filename.length === 0) return null;
+   const base = path.basename(filename);
+   if (!base || base === '.' || base === '..') return null;
+   const resolved = path.resolve(UPLOADS_DIR_ABS, base);
+   const rel = path.relative(UPLOADS_DIR_ABS, resolved);
+   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return null;
+   return resolved;
+};
+
+const unlinkSafely = (resolvedPath: string): void => {
+   try {
+      fs.unlinkSync(resolvedPath);
+   } catch (e: any) {
+      if (e?.code !== 'ENOENT') {
+         console.warn(`unlinkSafely: failed to remove ${resolvedPath}: ${e.message}`);
+      }
+   }
+};
+
+const cleanupJobFiles = (jobId: string, outputFilename?: string): void => {
+   try {
+      const entries = fs.readdirSync(UPLOADS_DIR_ABS);
+      for (const entry of entries) {
+         if (!entry.startsWith(`${jobId}-`)) continue;
+         const safe = safeResolveUploadPath(entry);
+         if (safe) unlinkSafely(safe);
+      }
+   } catch (e: any) {
+      if (e?.code !== 'ENOENT') {
+         console.warn(`cleanupJobFiles: readdir failed: ${e.message}`);
+      }
+   }
+   if (outputFilename) {
+      const safe = safeResolveUploadPath(outputFilename);
+      if (safe) unlinkSafely(safe);
+   }
+};
+
+const killJobProcess = (jobId: string, signal: NodeJS.Signals = 'SIGTERM'): boolean => {
+   const proc = jobProcesses.get(jobId);
+   if (!proc) return false;
+   try { proc.kill(signal); } catch (_e) { /* already exited */ }
+   jobProcesses.delete(jobId);
+   return true;
+};
+
+const killAllJobProcesses = (signal: NodeJS.Signals = 'SIGTERM'): number => {
+   let killed = 0;
+   for (const [, proc] of jobProcesses) {
+      try { proc.kill(signal); killed++; } catch (_e) { /* already exited */ }
+   }
+   jobProcesses.clear();
+   return killed;
+};
+// ---------------------------------------------------------------------------
+
 const loadJobsDb = (): DownloadJob[] => {
     if (!fs.existsSync(JOBS_FILE)) return [];
     let raw: string;
@@ -482,7 +549,7 @@ const loadJobsDb = (): DownloadJob[] => {
 
 downloadJobs = loadJobsDb();
 for (const job of downloadJobs) {
-    if (['queued', 'analyzing', 'downloading', 'converting', 'indexing'].includes(job.status)) {
+    if (isActiveJobStatus(job.status)) {
         job.status = 'failed';
         job.phase = 'Failed';
         job.error = 'Server was restarted before job could complete';
@@ -508,20 +575,13 @@ const cleanupOldAndPartialJobs = () => {
 
    for (const job of downloadJobs) {
       if (job.status === 'failed' || job.status === 'cancelled') {
-         if (job.outputFilename) {
-             const p = path.join(UPLOADS_DIR, job.outputFilename);
-             if (fs.existsSync(p)) fs.unlinkSync(p);
-         }
-         try {
-             const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(`${job.id}-`));
-             for (const f of files) fs.unlinkSync(path.join(UPLOADS_DIR, f));
-         } catch(e) {}
+         cleanupJobFiles(job.id, job.outputFilename);
       }
    }
 
    const initialLen = downloadJobs.length;
    downloadJobs = downloadJobs.filter(job => {
-      if (['queued', 'analyzing', 'downloading', 'converting', 'indexing'].includes(job.status)) return true;
+      if (isActiveJobStatus(job.status)) return true;
       return (now - job.updatedAt) < retentionMs;
    });
 
@@ -1036,20 +1096,18 @@ app.get("/api/download-jobs/:id/logs", (req, res) => {
 
 // API: Delete job
 app.delete("/api/download-jobs/:id", (req, res) => {
-   const originalLen = downloadJobs.length;
    const job = downloadJobs.find(j => j.id === req.params.id);
-   if (job) {
-       if (job.status !== 'complete' && job.status !== 'failed' && job.status !== 'cancelled' && job.status !== 'queued') {
-           return res.status(400).json({ error: "Cannot delete an active job. Cancel it first." });
-       }
+   if (!job) return res.status(404).json({ error: "Job not found" });
+
+   // Active = currently running. Queued jobs are deletable.
+   if (isActiveJobStatus(job.status) && job.status !== 'queued') {
+       return res.status(409).json({ error: "Cancel active job before deleting" });
    }
+
+   cleanupJobFiles(job.id, job.outputFilename);
    downloadJobs = downloadJobs.filter(j => j.id !== req.params.id);
-   if (downloadJobs.length < originalLen) {
-       saveJobsDb();
-       res.json({ success: true });
-   } else {
-       res.status(404).json({ error: "Job not found" });
-   }
+   saveJobsDb();
+   res.json({ success: true });
 });
 
 // API: Retry job
@@ -1065,11 +1123,19 @@ app.post("/api/download-jobs/:id/retry", (req, res) => {
        return res.status(409).json({ error: "Job is already running" });
    }
 
+   // Clean up any leftover artifacts from the prior attempt before retrying.
+   cleanupJobFiles(job.id, job.outputFilename);
+
    job.status = 'queued';
    job.phase = 'Queued';
    job.progress = 0;
    job.error = undefined;
    job.errorCode = undefined;
+   job.logs = [];
+   job.actualDuration = undefined;
+   job.actualBitrate = undefined;
+   job.outputFilename = undefined;
+   job.resultTrackId = undefined;
    job.speed = undefined;
    job.eta = undefined;
    job.updatedAt = Date.now();
@@ -1085,7 +1151,7 @@ app.post("/api/download-jobs/:id/cancel", (req, res) => {
    const job = downloadJobs.find(j => j.id === req.params.id);
    if (!job) return res.status(404).json({ error: "Job not found" });
 
-   if (job.status === 'complete' || job.status === 'failed' || job.status === 'cancelled') {
+   if (isTerminalJobStatus(job.status)) {
        return res.status(400).json({ error: "Cannot cancel a job that is complete, failed, or already cancelled." });
    }
 
@@ -1094,20 +1160,11 @@ app.post("/api/download-jobs/:id/cancel", (req, res) => {
    job.errorCode = 'cancelled';
    job.updatedAt = Date.now();
    if (job.logs) job.logs.push(`[${new Date().toISOString()}] Job cancelled by user.`);
+
+   killJobProcess(job.id);
+   cleanupJobFiles(job.id);
+
    saveJobsDb();
-
-   const proc = jobProcesses.get(job.id);
-   if (proc) {
-       try { proc.kill('SIGTERM'); } catch(e) {}
-       jobProcesses.delete(job.id);
-   }
-
-   // Cleanup partial files
-   try {
-      const files = fs.readdirSync(UPLOADS_DIR).filter(f => f.startsWith(`${job.id}-`));
-      for(const f of files) fs.unlinkSync(path.join(UPLOADS_DIR, f));
-   } catch(e) {}
-
    res.json(job);
 });
 
@@ -1118,26 +1175,38 @@ app.post("/api/reset", (req, res) => {
        const summary = {
           tracksDeleted: tracks.length,
           jobsDeleted: downloadJobs.length,
-          filesDeleted: 0
+          filesDeleted: 0,
+          processesKilled: 0
        };
 
-       // Clear in-memory arrays
+       // 1. Kill any active job processes first so they don't race against file deletion.
+       summary.processesKilled = killAllJobProcesses();
+
+       // 2. Clear in-memory state.
        tracks = [];
        downloadJobs = [];
 
-       // Clear files
-       if (fs.existsSync(DB_FILE)) fs.unlinkSync(DB_FILE);
-       if (fs.existsSync(JOBS_FILE)) fs.unlinkSync(JOBS_FILE);
-
-       const files = fs.readdirSync(UPLOADS_DIR);
-       for (const file of files) {
-           const fullPath = path.join(UPLOADS_DIR, file);
-           // Don't delete directories, and don't delete db files we already handled (though they should be gone)
-           if (fs.lstatSync(fullPath).isFile()) {
-               fs.unlinkSync(fullPath);
-               summary.filesDeleted++;
+       // 3. Delete every file in uploads/ via the safe-resolve gate.
+       let entries: string[] = [];
+       try { entries = fs.readdirSync(UPLOADS_DIR_ABS); } catch (_e) { entries = []; }
+       for (const entry of entries) {
+           const safe = safeResolveUploadPath(entry);
+           if (!safe) continue;
+           try {
+              if (fs.lstatSync(safe).isFile()) {
+                 fs.unlinkSync(safe);
+                 summary.filesDeleted++;
+              }
+           } catch (e: any) {
+              if (e?.code !== 'ENOENT') {
+                 console.warn(`reset: failed to remove ${entry}: ${e.message}`);
+              }
            }
        }
+
+       // 4. Recreate db.json and jobs.json as empty arrays so the app starts clean.
+       try { fs.writeFileSync(DB_FILE, '[]'); } catch (e: any) { console.warn(`reset: failed to recreate db.json: ${e.message}`); }
+       try { fs.writeFileSync(JOBS_FILE, '[]'); } catch (e: any) { console.warn(`reset: failed to recreate jobs.json: ${e.message}`); }
 
        res.json({
            success: true,
@@ -1175,6 +1244,25 @@ export async function startServer(port: number = PORT) {
   });
 }
 
+// Limited internal accessor used by lifecycle tests / manual verification scripts.
+// Not part of the public HTTP API; safe to leave exported in production since it
+// only exposes a getter to the same in-memory state the routes already mutate.
+export const __serverInternals = {
+  getDownloadJobs: () => downloadJobs,
+  getJobProcesses: () => jobProcesses,
+};
+
+let shuttingDown = false;
+const shutdown = (signal: NodeJS.Signals) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const killed = killAllJobProcesses();
+  console.log(`Received ${signal}; terminated ${killed} active job process(es). Exiting.`);
+  process.exit(0);
+};
+
 if (process.env.NODE_ENV !== 'test') {
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
   startServer();
 }
