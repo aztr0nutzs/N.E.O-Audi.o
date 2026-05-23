@@ -4,7 +4,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X } from 'lucide-react';
 import { formatDuration } from '../lib/utils';
 import { cn } from '../lib/utils';
-import { Track } from '../types';
+import { Track, LOSSLESS_FORMATS } from '../types';
 
 const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title: string, subtitle: string, icon: React.ReactNode, color: string, className?: string, onClick?: () => void }) => {
    const colorMap: any = {
@@ -116,13 +116,16 @@ export function Library() {
      
      switch(view) {
         case 'downloaded':
-           return filtered.filter(t => t.sourceType === 'youtube' || t.sourceType === 'url' || t.sourceType === 'downloaded' as any);
+           return filtered.filter(t => t.sourceType === 'downloaded');
         case 'recently_added':
            return [...filtered].sort((a, b) => b.createdAt - a.createdAt);
         case 'lossless':
+           // Strictly truly-lossless formats. We intentionally do not include
+           // high-bitrate lossy files (e.g. 320 kbps MP3) here — those are
+           // still lossy and should not be presented as "verified" lossless.
            return filtered.filter(t => {
-               const fmt = t.format?.toLowerCase() || '';
-               return fmt === 'wav' || fmt === 'flac' || (t.bitrate && t.bitrate >= 320);
+               const fmt = (t.format || '').toLowerCase();
+               return (LOSSLESS_FORMATS as readonly string[]).includes(fmt);
            });
         case 'mood_tracks':
            return filtered.filter(t => t.genre && t.genre.toLowerCase().split(',').map(s=>s.trim()).includes((selectedId||'').toLowerCase()));

@@ -8,7 +8,11 @@ interface LibraryState {
   playlists: Playlist[];
   isLoading: boolean;
   loadLibrary: () => Promise<void>;
-  addTrack: (track: Track, blob?: Blob) => Promise<void>;
+  // When `blob` is provided, `track` is treated as a Partial<Track> override
+  // map (title/artist) and the backend derives every other field from the
+  // probed file. When `blob` is omitted, this is treated as an update and the
+  // store-resident track is used as the base.
+  addTrack: (track: Partial<Track>, blob?: Blob) => Promise<void>;
   removeTrack: (id: string) => Promise<void>;
   updateTrack: (id: string, updates: Partial<Track>) => Promise<void>;
   addPlaylist: (playlist: Playlist) => Promise<void>;
@@ -35,7 +39,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   addTrack: async (track, blob) => {
-    await storage.saveTrack(track, blob);
+    if (blob) {
+       await storage.uploadTrack(blob, track);
+    } else {
+       // Treated as an update on an existing track.
+       if (!track.id) throw new Error('Cannot save track without an id');
+       await storage.saveTrack(track as Track);
+    }
     await get().loadLibrary();
   },
 

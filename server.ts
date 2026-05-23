@@ -79,16 +79,47 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 // In-memory or simple JSON DB for tracks
 const DB_FILE = path.join(UPLOADS_DIR, 'db.json');
 const JOBS_FILE = path.join(UPLOADS_DIR, 'jobs.json');
+
+// Canonical supported audio formats. Kept in sync with types.ts on the frontend.
+const SUPPORTED_FORMATS = ['mp3', 'wav', 'm4a'] as const;
+type SupportedFormat = typeof SUPPORTED_FORMATS[number];
+
+const SUPPORTED_AUDIO_EXTENSIONS: Record<string, SupportedFormat> = {
+   mp3: 'mp3',
+   wav: 'wav',
+   wave: 'wav',
+   m4a: 'm4a',
+   mp4: 'm4a',
+   aac: 'm4a',
+};
+
+// Map ffprobe format_name (often a comma-separated list like "mov,mp4,m4a")
+// or a file extension into the canonical SupportedFormat. Falls back to the
+// provided default when nothing matches.
+const normalizeFormat = (raw: string | undefined, fallback: SupportedFormat = 'mp3'): SupportedFormat => {
+   if (!raw) return fallback;
+   const tokens = raw.toLowerCase().split(/[,\s./]+/).filter(Boolean);
+   for (const t of tokens) {
+      if ((SUPPORTED_FORMATS as readonly string[]).includes(t)) return t as SupportedFormat;
+      if (SUPPORTED_AUDIO_EXTENSIONS[t]) return SUPPORTED_AUDIO_EXTENSIONS[t];
+      // ffprobe often reports mp3 as "mp3" inside the long format_name; catch common aliases
+      if (t === 'mpeg' || t === 'mp3float' || t === 'mp3adu') return 'mp3';
+      if (t === 'wav' || t === 'pcm_s16le' || t === 'pcm_s24le') return 'wav';
+      if (t === 'm4a' || t === 'mp4' || t === 'aac' || t === 'isom') return 'm4a';
+   }
+   return fallback;
+};
+
 type Track = {
   id: string;
   title: string;
   artist: string;
   album?: string;
   genre?: string;
-  sourceType: 'local' | 'url';
+  sourceType: 'local' | 'downloaded';
   sourceUrl?: string;
   localUrl: string;
-  format: string;
+  format: SupportedFormat;
   bitrate?: number;
   duration: number;
   size: number;
@@ -98,10 +129,39 @@ type Track = {
   favorite: boolean;
 };
 
+// Migrate a legacy persisted track record (which may still hold 'url' / 'youtube'
+// sourceType values or a raw ffprobe format_name) into the canonical shape.
+const migrateLegacyTrack = (raw: any): Track | null => {
+   if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string') return null;
+   const legacySource = String(raw.sourceType || '').toLowerCase();
+   const sourceType: 'local' | 'downloaded' = legacySource === 'local' ? 'local' : 'downloaded';
+   return {
+      id: raw.id,
+      title: typeof raw.title === 'string' ? raw.title : 'Unknown Title',
+      artist: typeof raw.artist === 'string' ? raw.artist : 'Unknown Artist',
+      album: typeof raw.album === 'string' ? raw.album : undefined,
+      genre: typeof raw.genre === 'string' ? raw.genre : undefined,
+      sourceType,
+      sourceUrl: typeof raw.sourceUrl === 'string' ? raw.sourceUrl : undefined,
+      localUrl: typeof raw.localUrl === 'string' ? raw.localUrl : '',
+      format: normalizeFormat(typeof raw.format === 'string' ? raw.format : undefined),
+      bitrate: typeof raw.bitrate === 'number' ? raw.bitrate : undefined,
+      duration: typeof raw.duration === 'number' ? raw.duration : 0,
+      size: typeof raw.size === 'number' ? raw.size : 0,
+      coverArt: typeof raw.coverArt === 'string' ? raw.coverArt : undefined,
+      createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
+      updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
+      favorite: Boolean(raw.favorite),
+   };
+};
+
 let tracks: Track[] = [];
 if (fs.existsSync(DB_FILE)) {
   try {
-    tracks = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+    const rawTracks = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+    if (Array.isArray(rawTracks)) {
+       tracks = rawTracks.map(migrateLegacyTrack).filter((t): t is Track => t !== null);
+    }
   } catch(e) {}
 }
 
@@ -121,63 +181,138 @@ app.get("/api/tracks", (req, res) => {
   res.json(tracks);
 });
 
+// Best-effort sync unlink that won't throw if the file is already gone.
+const tryUnlink = (p: string) => {
+   try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (_) {}
+};
+
 // API: Upload track
+//
+// Policy: only audio uploads in SUPPORTED_FORMATS are accepted. Video/* is
+// rejected explicitly — we do not extract audio from video on upload, and the
+// downloader is the supported path for "I have a URL, convert it for me".
+// The uploaded file is probed BEFORE the Track record is created so a probe
+// failure means the file is removed and no Track is persisted.
 app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
   try {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
+    const mimeType = (mime.lookup(file.originalname) || '').toString().toLowerCase();
+    const ext = path.extname(file.originalname).replace('.', '').toLowerCase();
+
+    if (mimeType.startsWith('video/')) {
+       tryUnlink(file.path);
+       return res.status(415).json({
+          error: "Video uploads are not supported. Upload an audio file (MP3, WAV, M4A) or use the Downloader.",
+          errorCode: 'unsupported_media',
+       });
     }
 
-    const mimeType = mime.lookup(file.originalname) || '';
-    if (!mimeType.startsWith('audio/') && !mimeType.startsWith('video/')) {
-        fs.unlinkSync(file.path);
-        return res.status(400).json({ error: "File is not recognized as a valid audio file" });
+    if (!mimeType.startsWith('audio/') && !SUPPORTED_AUDIO_EXTENSIONS[ext]) {
+       tryUnlink(file.path);
+       return res.status(415).json({
+          error: `Unsupported file type. Supported formats: ${SUPPORTED_FORMATS.join(', ')}.`,
+          errorCode: 'unsupported_media',
+       });
     }
 
-    // Parse metadata if provided
+    const fallbackFormat = SUPPORTED_AUDIO_EXTENSIONS[ext] || 'mp3';
+
+    // Parse metadata overrides if provided. Only title/artist are accepted;
+    // size/duration/bitrate/format are always derived from the actual file.
     const metadataStr = req.body.metadata;
-    let metadata: any = {};
+    let metadata: { title?: string; artist?: string } = {};
     if (metadataStr) {
-       try { metadata = JSON.parse(metadataStr); } catch(e) {}
+       try {
+          const parsed = JSON.parse(metadataStr);
+          if (parsed && typeof parsed === 'object') {
+             if (typeof parsed.title === 'string') metadata.title = parsed.title.trim().slice(0, 300);
+             if (typeof parsed.artist === 'string') metadata.artist = parsed.artist.trim().slice(0, 300);
+          }
+       } catch(e) {
+          /* ignore malformed metadata, fall back to filename */
+       }
     }
 
+    // Probe BEFORE creating the Track. A failed probe = unsupported file = reject.
     let actualDuration = 0;
     let actualBitrate = 0;
-    let format = path.extname(file.originalname).replace('.', '') || 'mp3';
-
+    let probedFormatRaw: string | undefined;
+    let hasAudioStream = false;
+    let hasVideoStream = false;
     try {
-         const probeResult = await execFileAsync(ffprobeStatic.path, [
-             '-v', 'quiet',
-             '-print_format', 'json',
-             '-show_format',
-             '-show_streams',
-             file.path
-         ]);
-         const probeData = JSON.parse(probeResult.stdout);
-         const formatData = probeData.format;
-         if (formatData && formatData.duration) {
-             actualDuration = parseFloat(formatData.duration);
-         }
-         if (formatData && formatData.bit_rate) {
-             actualBitrate = Math.round(parseInt(formatData.bit_rate) / 1000);
-         }
-         if (formatData && formatData.format_name) {
-             format = formatData.format_name.split(',')[0];
-         }
-    } catch(probeErr) {
-         console.error('ffprobe error on upload:', probeErr);
+       const probeResult = await execFileAsync(ffprobeStatic.path, [
+           '-v', 'quiet',
+           '-print_format', 'json',
+           '-show_format',
+           '-show_streams',
+           file.path
+       ]);
+       const probeData = JSON.parse(probeResult.stdout);
+       const formatData = probeData.format;
+       const streams: any[] = Array.isArray(probeData.streams) ? probeData.streams : [];
+       hasAudioStream = streams.some(s => s && s.codec_type === 'audio');
+       hasVideoStream = streams.some(s => s && s.codec_type === 'video');
+       if (formatData && formatData.duration) {
+           const d = parseFloat(formatData.duration);
+           if (Number.isFinite(d) && d > 0) actualDuration = d;
+       }
+       if (formatData && formatData.bit_rate) {
+           const b = parseInt(formatData.bit_rate, 10);
+           if (Number.isFinite(b) && b > 0) actualBitrate = Math.round(b / 1000);
+       }
+       if (formatData && typeof formatData.format_name === 'string') {
+           probedFormatRaw = formatData.format_name;
+       }
+    } catch (probeErr) {
+       console.error('ffprobe error on upload:', probeErr);
+       tryUnlink(file.path);
+       return res.status(415).json({
+          error: "File could not be probed and is not a recognised audio file.",
+          errorCode: 'unsupported_media',
+       });
     }
 
+    if (!hasAudioStream) {
+       tryUnlink(file.path);
+       return res.status(415).json({
+          error: "Uploaded file does not contain an audio stream.",
+          errorCode: 'unsupported_media',
+       });
+    }
+
+    if (hasVideoStream) {
+       // A pure audio container should not carry a video stream. Reject so we
+       // don't silently index a video file as a track.
+       tryUnlink(file.path);
+       return res.status(415).json({
+          error: "Video uploads are not supported. Upload an audio file (MP3, WAV, M4A) or use the Downloader.",
+          errorCode: 'unsupported_media',
+       });
+    }
+
+    const format = normalizeFormat(probedFormatRaw, fallbackFormat);
+    if (!(SUPPORTED_FORMATS as readonly string[]).includes(format)) {
+       tryUnlink(file.path);
+       return res.status(415).json({
+          error: `Unsupported audio codec. Supported formats: ${SUPPORTED_FORMATS.join(', ')}.`,
+          errorCode: 'unsupported_media',
+       });
+    }
+
+    const baseName = file.originalname.replace(/\.[^/.]+$/, '').trim();
     const t: Track = {
       id: crypto.randomUUID(),
-      title: metadata.title || file.originalname.replace(/\.[^/.]+$/, ""),
+      title: metadata.title || baseName || 'Unknown Title',
       artist: metadata.artist || 'Unknown Artist',
       sourceType: 'local',
       localUrl: `/api/stream/${file.filename}`,
-      format: format,
+      format,
       duration: actualDuration,
-      bitrate: actualBitrate,
+      bitrate: actualBitrate || undefined,
       size: file.size,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -190,31 +325,57 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
     res.json(t);
   } catch (error) {
     console.error(error);
-    if (req.file) fs.unlinkSync(req.file.path);
+    tryUnlink(file.path);
     res.status(500).json({ error: "Failed to upload file" });
   }
 });
 
 // API: Update track
+//
+// Only user-editable metadata fields are accepted. Each string is validated as
+// a string, trimmed, and length-capped before being written. Any other field
+// in the body (id, format, duration, sourceType, etc.) is ignored.
+const TRACK_TEXT_FIELD_MAX = 300;
+const validateOptionalTrimmedString = (value: unknown): string | undefined | null => {
+   if (value === undefined) return undefined;
+   if (typeof value !== 'string') return null; // sentinel: invalid type
+   return value.trim().slice(0, TRACK_TEXT_FIELD_MAX);
+};
+
 app.patch("/api/tracks/:id", (req, res) => {
   const id = req.params.id;
   const trackIdx = tracks.findIndex(t => t.id === id);
-  if (trackIdx !== -1) {
-    const track = tracks[trackIdx];
-    const { title, artist, album, genre, favorite } = req.body;
-
-    if (title !== undefined) track.title = title;
-    if (artist !== undefined) track.artist = artist;
-    if (album !== undefined) track.album = album;
-    if (genre !== undefined) track.genre = genre;
-    if (favorite !== undefined) track.favorite = favorite;
-    track.updatedAt = Date.now();
-
-    saveDb();
-    res.json(track);
-  } else {
-    res.status(404).json({ error: "Track not found" });
+  if (trackIdx === -1) {
+     return res.status(404).json({ error: "Track not found" });
   }
+
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  const { title, artist, album, genre, favorite } = body as Record<string, unknown>;
+
+  const titleVal = validateOptionalTrimmedString(title);
+  const artistVal = validateOptionalTrimmedString(artist);
+  const albumVal = validateOptionalTrimmedString(album);
+  const genreVal = validateOptionalTrimmedString(genre);
+  if (titleVal === null || artistVal === null || albumVal === null || genreVal === null) {
+     return res.status(400).json({ error: "Invalid metadata: title/artist/album/genre must be strings." });
+  }
+  if (favorite !== undefined && typeof favorite !== 'boolean') {
+     return res.status(400).json({ error: "Invalid metadata: favorite must be boolean." });
+  }
+  if (titleVal !== undefined && titleVal.length === 0) {
+     return res.status(400).json({ error: "Title must not be empty." });
+  }
+
+  const track = tracks[trackIdx];
+  if (titleVal !== undefined) track.title = titleVal;
+  if (artistVal !== undefined) track.artist = artistVal || 'Unknown Artist';
+  if (albumVal !== undefined) track.album = albumVal || undefined;
+  if (genreVal !== undefined) track.genre = genreVal || undefined;
+  if (favorite !== undefined) track.favorite = favorite as boolean;
+  track.updatedAt = Date.now();
+
+  saveDb();
+  res.json(track);
 });
 
 // API: Stream file
@@ -280,7 +441,7 @@ interface DownloadJob {
   status: JobStatus;
   progress: number;
   phase: string;
-  format: 'mp3' | 'wav' | 'm4a';
+  format: SupportedFormat;
   bitrate: number;
   error?: string;
   errorCode?: string;
@@ -712,10 +873,10 @@ const runDownloadEngine = async (jobId: string) => {
             id: crypto.randomUUID(),
             title: buildSafeBasename(title, 'audio'),
             artist: artist,
-            sourceType: 'url' as const,
+            sourceType: 'downloaded',
             sourceUrl: job.sourceUrl,
             localUrl: `/api/stream/${actualFile}`,
-            format: job.format,
+            format: normalizeFormat(job.format, job.format),
             bitrate: job.actualBitrate,
             duration: actualDuration,
             size: stat.size,
@@ -811,7 +972,7 @@ app.post("/api/download-jobs", (req, res) => {
        });
    }
 
-   if (!['mp3', 'wav', 'm4a'].includes(format)) {
+   if (!(SUPPORTED_FORMATS as readonly string[]).includes(format)) {
        return res.status(400).json({ error: "Invalid format", errorCode: 'invalid_url' });
    }
 
