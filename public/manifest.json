@@ -1,0 +1,23 @@
+{
+  "name": "N.E.O Audio Lab",
+  "short_name": "N.E.O Audio",
+  "description": "Cyberpunk audio downloader, library, player, uploader, and equalizer interface.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030305",
+  "theme_color": "#00f0ff",
+  "icons": [
+    {
+      "src": "/assets/neo_audio/neo_audio_icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/neo_audio/neo_audio_icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

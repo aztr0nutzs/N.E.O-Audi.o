@@ -61,6 +61,12 @@ When a job fails, `errorCode` is one of:
 - `verification_failed` — output file fails ffprobe / size / extension checks
 - `cancelled` — user cancelled the job
 
+## App Icon
+
+The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` and is exported through `src/lib/neoAudioAssets.ts` as `NEO_AUDIO_ICON`. It is also referenced as the web favicon (`/favicon.png`), `apple-touch-icon`, and PWA manifest icon (`/manifest.json`).
+
+> **APK launcher icon requires an Android/Capacitor wrapper.** This repository ships the web app only, so web/PWA icon is configured using `neo_audio_icon.png`. To produce Android launcher densities (`mipmap-mdpi`/`hdpi`/`xhdpi`/`xxhdpi`/`xxxhdpi`), add a Capacitor (or equivalent) wrapper and generate `ic_launcher.png` from `public/assets/neo_audio/neo_audio_icon.png`.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`

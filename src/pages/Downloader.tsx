@@ -8,6 +8,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { SUPPORTED_FORMATS, type DownloadJob } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 
 export function Downloader() {
   const navigate = useNavigate();
@@ -97,6 +98,8 @@ export function Downloader() {
     <div className="max-w-6xl mx-auto min-h-[calc(100vh-140px)] flex flex-col justify-center pb-24 md:pb-0 px-4">
       {/* Circuit board background lines faint - implemented via CSS radial/linear in index already, but add faint overlay here */}
       <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.1) 0%, transparent 60%)' }} />
+
+      <NeoAudioHeader className="mb-6 relative z-10" alt="N.E.O Audio Lab downloader" />
 
       <div className="relative flex flex-col items-center justify-center mb-8">
          <h1 className="text-3xl md:text-5xl font-bold tracking-[0.3em] font-mono uppercase bg-clip-text text-transparent bg-gradient-to-r from-neo-cyan via-white to-neo-magenta drop-shadow-[0_0_10px_currentColor]">DOWNLOADER MODULE</h1>

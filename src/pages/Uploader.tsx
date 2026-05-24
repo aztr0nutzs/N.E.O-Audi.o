@@ -6,6 +6,7 @@ import { UploadCloud, Music, Save, Zap } from 'lucide-react';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { Track } from '../types';
 import toast from 'react-hot-toast';
+import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 
 // Files matching this regex are accepted by the chooser. The backend still
 // authoritatively validates via ffprobe; this is just a fast client-side guard.
@@ -84,6 +85,7 @@ export function Uploader() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto pb-24 md:pb-0">
+      <NeoAudioHeader className="mb-2" alt="N.E.O Audio Lab uploader" />
       <header className="mb-6 border-b border-gray-800 pb-4 text-center">
         <h1 className="text-2xl font-bold tracking-widest text-neo-lime uppercase italic shadow-[0_0_15px_rgba(57,255,20,0.4)] drop-shadow-md inline-block px-8 py-2 border-y border-neo-lime/30">
           LOCAL IMPORT

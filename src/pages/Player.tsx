@@ -8,6 +8,7 @@ import { formatDuration } from '../lib/utils';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { NavLink } from 'react-router-dom';
+import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 
 export function Player() {
   const { currentTrackId, isPlaying, pause, resume, next, previous, progress, volume, setVolume, repeat, toggleRepeat, shuffle, toggleShuffle, seekTo, analyserNode, error, duration: audioDuration, playbackSpeed, setSpeed } = usePlayerStore();
@@ -48,7 +49,8 @@ export function Player() {
 
   if (!track) {
     return (
-      <div className="h-[calc(100vh-100px)] flex flex-col items-center justify-center p-4">
+      <div className="min-h-[calc(100vh-100px)] flex flex-col items-center justify-center p-4 gap-6 w-full max-w-lg mx-auto">
+        <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab player" />
         <div className="hud-panel w-full max-w-sm aspect-square flex flex-col items-center justify-center border-gray-800">
            <ReactorCoreVisual className="w-1/2 h-1/2 opacity-20" intensity="low" />
            <p className="mt-8 font-mono text-sm tracking-widest text-gray-600">AWAITING SIGNAL</p>
@@ -61,7 +63,9 @@ export function Player() {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen pb-24 flex flex-col items-center p-4 space-y-6">
-      
+
+      <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab player" />
+
       {/* Top Title HUD */}
       <div className="armored-frame p-2 px-6 border-neo-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] w-full relative h-[52px]">
          <button onClick={toggleShuffle} className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", shuffle ? "text-neo-magenta drop-shadow-[0_0_5px_currentColor]" : "text-gray-500 hover:text-white")}>

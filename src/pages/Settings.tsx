@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { storage } from '../services/storage';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
+import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 
 export function Settings() {
   const { settings, updateSettings, loadSettings } = useAppStore();
@@ -41,6 +42,7 @@ export function Settings() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
+       <NeoAudioHeader alt="N.E.O Audio Lab settings" />
        <div className="flex items-center space-x-3 mb-8">
          <SettingsIcon className="w-8 h-8 text-neo-blue neo-glow-cyan rounded-full" />
          <h2 className="text-3xl font-bold italic text-white tracking-widest">System Configurations</h2>
