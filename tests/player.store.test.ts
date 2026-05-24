@@ -45,4 +45,43 @@ describe('usePlayerStore', () => {
     usePlayerStore.getState().setSpeed(1.25);
     expect(usePlayerStore.getState().playbackSpeed).toBe(1.25);
   });
+
+  it('stop pauses playback, resets progress, and clears error', () => {
+    usePlayerStore.setState({ isPlaying: true, progress: 0.5, error: 'boom' });
+    usePlayerStore.getState().stop();
+    const s = usePlayerStore.getState();
+    expect(s.isPlaying).toBe(false);
+    expect(s.progress).toBe(0);
+    expect(s.error).toBeNull();
+    expect(s.seekRequest).toBe(0);
+  });
+
+  it('seekForward advances by seconds and clamps to <= 1', () => {
+    usePlayerStore.setState({ duration: 100, progress: 0.5 });
+    usePlayerStore.getState().seekForward(15);
+    expect(usePlayerStore.getState().progress).toBeCloseTo(0.65, 5);
+
+    usePlayerStore.setState({ duration: 100, progress: 0.95 });
+    usePlayerStore.getState().seekForward(60);
+    expect(usePlayerStore.getState().progress).toBeLessThanOrEqual(1);
+    expect(usePlayerStore.getState().progress).toBe(1);
+  });
+
+  it('seekBackward rewinds by seconds and clamps to >= 0', () => {
+    usePlayerStore.setState({ duration: 100, progress: 0.5 });
+    usePlayerStore.getState().seekBackward(15);
+    expect(usePlayerStore.getState().progress).toBeCloseTo(0.35, 5);
+
+    usePlayerStore.setState({ duration: 100, progress: 0.05 });
+    usePlayerStore.getState().seekBackward(60);
+    expect(usePlayerStore.getState().progress).toBeGreaterThanOrEqual(0);
+    expect(usePlayerStore.getState().progress).toBe(0);
+  });
+
+  it('seekForward and seekBackward are no-ops when duration is missing', () => {
+    usePlayerStore.setState({ duration: 0, progress: 0 });
+    expect(() => usePlayerStore.getState().seekForward(15)).not.toThrow();
+    expect(() => usePlayerStore.getState().seekBackward(15)).not.toThrow();
+    expect(usePlayerStore.getState().progress).toBe(0);
+  });
 });
