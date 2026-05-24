@@ -7,6 +7,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useNavigate } from 'react-router-dom';
 import { PlayCircle, Download, Upload, ListMusic, HardDrive, Zap, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 
 export function Dashboard() {
   const tracks = useLibraryStore(state => state.tracks);
@@ -19,6 +20,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
+      <NeoAudioHeader className="mb-6" alt="N.E.O Audio Lab dashboard" />
       <header className="mb-6 border-b border-gray-800 pb-4">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
