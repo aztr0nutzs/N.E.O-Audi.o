@@ -21,6 +21,7 @@ interface PlayerState {
   playTrack: (trackId: string, queue?: string[]) => void;
   pause: () => void;
   resume: () => void;
+  stop: () => void;
   next: () => void;
   previous: () => void;
   setVolume: (v: number) => void;
@@ -31,6 +32,8 @@ interface PlayerState {
   setSpeed: (s: number) => void;
   addToQueue: (trackId: string) => void;
   seekTo: (progress: number) => void;
+  seekForward: (seconds?: number) => void;
+  seekBackward: (seconds?: number) => void;
   clearSeekRequest: () => void;
   setError: (e: string | null) => void;
   setAnalyserNode: (node: AnalyserNode) => void;
@@ -71,6 +74,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   pause: () => set({ isPlaying: false }),
   resume: () => set({ isPlaying: true, error: null }),
+  stop: () => set({ isPlaying: false, progress: 0, seekRequest: 0, error: null }),
 
   next: () => {
     const { queue, queueIndex, currentTrackId, repeat, shuffle } = get();
@@ -157,7 +161,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   
   addToQueue: (trackId) => set((state) => ({ queue: [...state.queue, trackId] })),
 
-  seekTo: (progress) => set({ seekRequest: progress, progress }),
+  seekTo: (progress) => {
+    const clamped = Math.max(0, Math.min(1, progress));
+    set({ seekRequest: clamped, progress: clamped });
+  },
+  seekForward: (seconds = 15) => {
+    const { duration, progress } = get();
+    if (!duration || duration <= 0) return;
+    const currentSeconds = (progress || 0) * duration;
+    const nextSeconds = Math.min(duration, currentSeconds + seconds);
+    get().seekTo(nextSeconds / duration);
+  },
+  seekBackward: (seconds = 15) => {
+    const { duration, progress } = get();
+    if (!duration || duration <= 0) return;
+    const currentSeconds = (progress || 0) * duration;
+    const nextSeconds = Math.max(0, currentSeconds - seconds);
+    get().seekTo(nextSeconds / duration);
+  },
   clearSeekRequest: () => set({ seekRequest: null }),
   setError: (error) => set({ error }),
   setAnalyserNode: (node) => set({ analyserNode: node }),

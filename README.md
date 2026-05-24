@@ -67,6 +67,31 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 
 > **APK launcher icon requires an Android/Capacitor wrapper.** This repository ships the web app only, so web/PWA icon is configured using `neo_audio_icon.png`. To produce Android launcher densities (`mipmap-mdpi`/`hdpi`/`xhdpi`/`xxhdpi`/`xxxhdpi`), add a Capacitor (or equivalent) wrapper and generate `ic_launcher.png` from `public/assets/neo_audio/neo_audio_icon.png`.
 
+## N.E.O Audio UI Assets
+
+- **Player transport controls** use the 14 supplied N.E.O Audio image buttons rendered through `<NeoImageButton>` (real `<button>` elements with `aria-label`, keyboard activation, active glow, and dimmed disabled state). The mapping is:
+
+  | Asset | Action |
+  | --- | --- |
+  | `play.png` | Resume / play |
+  | `pause.png` | Pause |
+  | `stop.png` | Stop playback (pause + reset to 0) |
+  | `next.png` | Next track |
+  | `last.png` | Previous track |
+  | `fast-fwd.png` | Seek forward 15 seconds |
+  | `rewind.png` | Seek backward 15 seconds |
+  | `shuffle.png` | Toggle shuffle (active glow) |
+  | `repeat.png` | Cycle repeat mode (active glow) |
+  | `playlist.png` | Navigate to `/library` |
+  | `eq.png` | Navigate to `/equalizer` |
+  | `equalizer.png` | Navigate to `/equalizer` (advanced shortcut) |
+  | `download.png` | Navigate to `/download` |
+  | `settings.png` | Navigate to `/settings` |
+
+- **Bottom dock** uses `public/assets/neo_audio/neo_audio_dock.png` as the visual rail. The dock image is decorative — real overlay `<NavLink>` and `<button>` elements sit on top with their own hit areas (HOME → `/`, CHAT slot disabled, CENTER N → `/player`, GAMES → `/library`, SETTINGS → `/settings`). A compact secondary strip below the dock keeps `/download`, `/upload`, and `/equalizer` reachable so no route is hidden behind dead art.
+- **Headers** use `neo_audio_header1.png` and `neo_audio_header2.png` rotated through `<NeoAudioHeader>` (Dashboard, Downloader, Uploader, Library, Player, Equalizer, Settings).
+- **Web/PWA icon** uses `neo_audio_icon.png` as documented above.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`

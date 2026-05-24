@@ -1,36 +1,44 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import React from 'react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { ReactorCoreVisual } from '../components/ui/ReactorCoreVisual';
-import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Volume2, Network, Sliders, AlertTriangle } from 'lucide-react';
+import { Volume2, AlertTriangle } from 'lucide-react';
 import { formatDuration } from '../lib/utils';
-import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
-import { NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
+import { NeoImageButton } from '../components/ui/NeoImageButton';
+import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
 
 export function Player() {
-  const { currentTrackId, isPlaying, pause, resume, next, previous, progress, volume, setVolume, repeat, toggleRepeat, shuffle, toggleShuffle, seekTo, analyserNode, error, duration: audioDuration, playbackSpeed, setSpeed } = usePlayerStore();
+  const {
+    currentTrackId, isPlaying, pause, resume, stop, next, previous,
+    seekForward, seekBackward, progress, volume, setVolume,
+    repeat, toggleRepeat, shuffle, toggleShuffle, seekTo,
+    analyserNode, error, duration: audioDuration, playbackSpeed, setSpeed,
+  } = usePlayerStore();
   const tracks = useLibraryStore(state => state.tracks);
-  
+  const navigate = useNavigate();
+
   const track = tracks.find(t => t.id === currentTrackId);
   const duration = audioDuration || track?.duration || 0;
   const visualizerBarsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const noTrack = !track;
 
   useEffect(() => {
      if (!analyserNode || !isPlaying) return;
      let animationId: number;
      const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-     
+
      const draw = () => {
         animationId = requestAnimationFrame(draw);
         analyserNode.getByteFrequencyData(dataArray);
-        
-        const step = Math.floor(dataArray.length / 72); 
+
+        const step = Math.floor(dataArray.length / 72);
         for (let i = 0; i < 36; i++) {
-           const val = dataArray[i * step]; // 0 to 255
-           const percent = 70 + (val / 255) * 40; 
+           const val = dataArray[i * step];
+           const percent = 70 + (val / 255) * 40;
            if (visualizerBarsRef.current[i]) {
               visualizerBarsRef.current[i]!.style.height = `${percent}%`;
            }
@@ -45,8 +53,6 @@ export function Player() {
     seekTo(val);
   };
 
-  const activeRepeatColor = repeat === 'one' ? 'text-neo-cyan drop-shadow-[0_0_5px_currentColor]' : repeat === 'all' ? 'text-neo-lime drop-shadow-[0_0_5px_currentColor]' : 'text-gray-500 hover:text-white';
-
   if (!track) {
     return (
       <div className="min-h-[calc(100vh-100px)] flex flex-col items-center justify-center p-4 gap-6 w-full max-w-lg mx-auto">
@@ -54,6 +60,36 @@ export function Player() {
         <div className="hud-panel w-full max-w-sm aspect-square flex flex-col items-center justify-center border-gray-800">
            <ReactorCoreVisual className="w-1/2 h-1/2 opacity-20" intensity="low" />
            <p className="mt-8 font-mono text-sm tracking-widest text-gray-600">AWAITING SIGNAL</p>
+        </div>
+        <div className="flex gap-3 flex-wrap justify-center">
+          <NeoImageButton
+            src={NEO_AUDIO_BUTTONS.playlist}
+            alt="Library"
+            label="Open library"
+            size="md"
+            onClick={() => navigate('/library')}
+          />
+          <NeoImageButton
+            src={NEO_AUDIO_BUTTONS.download}
+            alt="Downloader"
+            label="Open downloader"
+            size="md"
+            onClick={() => navigate('/download')}
+          />
+          <NeoImageButton
+            src={NEO_AUDIO_BUTTONS.equalizer}
+            alt="Equalizer"
+            label="Open equalizer"
+            size="md"
+            onClick={() => navigate('/equalizer')}
+          />
+          <NeoImageButton
+            src={NEO_AUDIO_BUTTONS.settings}
+            alt="Settings"
+            label="Open settings"
+            size="md"
+            onClick={() => navigate('/settings')}
+          />
         </div>
       </div>
     );
@@ -67,17 +103,31 @@ export function Player() {
       <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab player" />
 
       {/* Top Title HUD */}
-      <div className="armored-frame p-2 px-6 border-neo-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] w-full relative h-[52px]">
-         <button onClick={toggleShuffle} className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", shuffle ? "text-neo-magenta drop-shadow-[0_0_5px_currentColor]" : "text-gray-500 hover:text-white")}>
-            <Shuffle className="w-5 h-5" />
-         </button>
-         <h1 className="text-xl md:text-2xl font-bold italic text-white tracking-widest uppercase text-center drop-shadow-md">
+      <div className="armored-frame p-2 px-6 border-neo-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] w-full relative flex items-center justify-between gap-2 min-h-[64px]">
+         <NeoImageButton
+           src={NEO_AUDIO_BUTTONS.shuffle}
+           alt="Shuffle"
+           label={shuffle ? 'Disable shuffle' : 'Enable shuffle'}
+           active={shuffle}
+           size="sm"
+           onClick={toggleShuffle}
+         />
+         <h1 className="text-xl md:text-2xl font-bold italic text-white tracking-widest uppercase text-center drop-shadow-md flex-1">
             <span className="text-neo-cyan">N.E.O.</span> the <span className="text-neo-nerd">AUDIO ENGINE</span>
          </h1>
-         <button onClick={toggleRepeat} className={cn("absolute right-4 top-1/2 -translate-y-1/2 transition-colors", activeRepeatColor)}>
-            <Repeat className="w-5 h-5" />
-            {repeat === 'one' && <span className="absolute -bottom-2 -right-1 text-[8px] font-bold">1</span>}
-         </button>
+         <div className="relative">
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.repeat}
+             alt="Repeat"
+             label={`Repeat mode: ${repeat}`}
+             active={repeat !== 'off'}
+             size="sm"
+             onClick={toggleRepeat}
+           />
+           {repeat === 'one' && (
+             <span className="absolute -bottom-1 -right-1 text-[9px] font-bold text-neo-cyan drop-shadow-[0_0_3px_currentColor] pointer-events-none">1</span>
+           )}
+         </div>
       </div>
 
       {/* Info Panels */}
@@ -97,15 +147,15 @@ export function Player() {
       {/* Main Reactor Vector Graphic Visualizer */}
       <div className="relative w-full aspect-square flex items-center justify-center pointer-events-none mt-4">
          <div className="absolute inset-0 rounded-full border border-neo-cyan/10" style={{ background: 'conic-gradient(from 180deg at 50% 50%, rgba(0, 240, 255, 0.1) 0deg, transparent 180deg, rgba(255, 0, 255, 0.1) 360deg)' }} />
-         
+
          {/* Live Analyser Bars */}
          <div className="absolute inset-0 flex items-center justify-center">
             {Array.from({length: 36}).map((_, i) => (
-                <div 
+                <div
                   key={i}
                   ref={el => { visualizerBarsRef.current[i] = el; }}
                   className="absolute w-1 rounded-t-sm transition-all duration-75"
-                  style={{ 
+                  style={{
                      height: '70%',
                      transformOrigin: 'bottom',
                      transform: `rotate(${i * 10}deg) translateY(-50%)`,
@@ -141,11 +191,12 @@ export function Player() {
              {formatDuration((progress || 0) * duration)}
            </span>
            <div className="relative flex-1 h-3 flex items-center bg-gray-900 border border-gray-700 rounded-full">
-              <input 
-                type="range" 
-                min="0" max="1" step="0.001" 
-                value={progress || 0} 
+              <input
+                type="range"
+                min="0" max="1" step="0.001"
+                value={progress || 0}
                 onChange={handleSeek}
+                aria-label="Seek track"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
               />
               <div className="absolute left-0 h-full bg-neo-lime shadow-[0_0_10px_#39ff14] rounded-full pointer-events-none" style={{ width: `${(progress || 0) * 100}%` }} />
@@ -156,41 +207,91 @@ export function Player() {
          </div>
 
          {/* Transport Controls Block */}
-         <div className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-gray-800 relative overflow-hidden">
+         <div className="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-gray-800 relative overflow-hidden gap-1 flex-wrap">
             <div className="absolute top-0 left-0 w-1 h-full bg-neo-cyan shadow-[0_0_10px_#00f0ff]" />
-            <button className="text-gray-400 hover:text-neo-cyan transition-colors" target-id="prev-btn" onClick={previous}>
-              <SkipBack className="w-7 h-7 fill-current" />
-            </button>
-            <button 
-              className="w-16 h-16 flex items-center justify-center rounded-full cyber-panel border-neo-cyan text-neo-cyan hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all active:scale-95"
-              onClick={isPlaying ? pause : resume}
-            >
-              {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-            </button>
-            <button className="text-gray-400 hover:text-neo-cyan transition-colors" target-id="next-btn" onClick={next}>
-              <SkipForward className="w-7 h-7 fill-current" />
-            </button>
+            <NeoImageButton
+              src={NEO_AUDIO_BUTTONS.previous}
+              alt="Previous"
+              label="Previous track"
+              size="md"
+              disabled={noTrack}
+              onClick={previous}
+            />
+            <NeoImageButton
+              src={NEO_AUDIO_BUTTONS.rewind}
+              alt="Rewind"
+              label="Rewind 15 seconds"
+              size="md"
+              disabled={noTrack}
+              onClick={() => seekBackward(15)}
+            />
+            {isPlaying ? (
+              <NeoImageButton
+                src={NEO_AUDIO_BUTTONS.pause}
+                alt="Pause"
+                label="Pause"
+                size="lg"
+                active
+                disabled={noTrack}
+                onClick={pause}
+              />
+            ) : (
+              <NeoImageButton
+                src={NEO_AUDIO_BUTTONS.play}
+                alt="Play"
+                label="Play"
+                size="lg"
+                disabled={noTrack}
+                onClick={resume}
+              />
+            )}
+            <NeoImageButton
+              src={NEO_AUDIO_BUTTONS.stop}
+              alt="Stop"
+              label="Stop"
+              size="md"
+              disabled={noTrack}
+              onClick={stop}
+            />
+            <NeoImageButton
+              src={NEO_AUDIO_BUTTONS.fastForward}
+              alt="Fast forward"
+              label="Fast-forward 15 seconds"
+              size="md"
+              disabled={noTrack}
+              onClick={() => seekForward(15)}
+            />
+            <NeoImageButton
+              src={NEO_AUDIO_BUTTONS.next}
+              alt="Next"
+              label="Next track"
+              size="md"
+              disabled={noTrack}
+              onClick={next}
+            />
          </div>
 
          {/* Lower Option Buttons */}
-         <div className="flex justify-between gap-2">
-            <ActionBlock 
+         <div className="flex justify-between gap-2 items-stretch">
+            <ActionBlock
               icon={
                 <div className="group relative w-full flex flex-col items-center">
                   <Volume2 className="text-neo-cyan mb-1"/>
-                  <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-12 h-1 bg-gray-800 rounded-full appearance-none cursor-pointer" />
+                  <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} aria-label="Volume" className="w-12 h-1 bg-gray-800 rounded-full appearance-none cursor-pointer" />
                 </div>
-              } 
-              label={Math.round(volume * 100) + '%'} 
-              color="cyan" 
+              }
+              label={Math.round(volume * 100) + '%'}
+              color="cyan"
             />
-            <ActionBlock 
+            <ActionBlock
               icon={
                 <div className="flex flex-wrap justify-center gap-1">
                    {speeds.map(s => (
-                      <button 
-                        key={s} 
+                      <button
+                        key={s}
                         onClick={() => setSpeed(s)}
+                        aria-label={`Set speed to ${s}x`}
+                        aria-pressed={playbackSpeed === s}
                         className={cn("text-[8px] font-mono border border-gray-800 px-1 rounded hover:border-neo-lime", playbackSpeed === s && "text-neo-lime border-neo-lime")}
                       >
                          {s}x
@@ -198,50 +299,72 @@ export function Player() {
                    ))}
                 </div>
               }
-              label="SPEED" 
-              color="lime" 
+              label="SPEED"
+              color="lime"
             />
-            <ActionBlock icon={<Sliders className="text-neo-magenta"/>} label="EQUALIZER" color="magenta" to="/equalizer" />
+         </div>
+
+         {/* Image Shortcut Rail */}
+         <div className="flex justify-between gap-2 items-center bg-black/30 p-2 rounded-xl border border-gray-800">
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.playlist}
+             alt="Library"
+             label="Open library"
+             size="sm"
+             onClick={() => navigate('/library')}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.eq}
+             alt="EQ"
+             label="Open equalizer"
+             size="sm"
+             onClick={() => navigate('/equalizer')}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.equalizer}
+             alt="Equalizer"
+             label="Open advanced equalizer"
+             size="sm"
+             onClick={() => navigate('/equalizer')}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.download}
+             alt="Download"
+             label="Open downloader"
+             size="sm"
+             onClick={() => navigate('/download')}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.settings}
+             alt="Settings"
+             label="Open settings"
+             size="sm"
+             onClick={() => navigate('/settings')}
+           />
          </div>
       </div>
-      
+
     </div>
   );
 }
 
-function ActionBlock({ icon, label, color, to, onClick }: any) {
-  const colorMap: any = {
+interface ActionBlockProps {
+  icon: React.ReactNode;
+  label: string;
+  color: 'cyan' | 'magenta' | 'lime';
+}
+
+function ActionBlock({ icon, label, color }: ActionBlockProps) {
+  const colorMap: Record<ActionBlockProps['color'], string> = {
     cyan: 'border-neo-cyan/50 text-neo-cyan hover:shadow-[0_0_15px_rgba(0,240,255,0.3)_inset]',
     magenta: 'border-neo-magenta/50 text-neo-magenta hover:shadow-[0_0_15px_rgba(255,0,255,0.3)_inset]',
     lime: 'border-neo-lime/50 text-neo-lime hover:shadow-[0_0_15px_rgba(57,255,20,0.3)_inset]',
   };
-  
-  const content = (
-    <>
-      <div className="opacity-80 flex items-center justify-center">{icon}</div>
-      <span className="text-[10px] font-bold tracking-widest text-white uppercase">{label}</span>
-    </>
-  );
-
-  if (to) {
-    return (
-      <NavLink to={to} className={cn("cyber-panel flex-1 py-3 flex flex-col items-center justify-center gap-1 transition-all", colorMap[color])}>
-        {content}
-      </NavLink>
-    );
-  }
-
-  if (onClick) {
-    return (
-       <button onClick={onClick} className={cn("cyber-panel flex-1 py-3 flex flex-col items-center justify-center gap-1 transition-all", colorMap[color])}>
-          {content}
-       </button>
-    )
-  }
 
   return (
-     <div className={cn("cyber-panel flex-1 py-3 flex flex-col items-center justify-center gap-1 transition-all", colorMap[color])}>
-        {content}
-     </div>
+    <div className={cn("cyber-panel flex-1 py-3 flex flex-col items-center justify-center gap-1 transition-all", colorMap[color])}>
+      <div className="opacity-80 flex items-center justify-center">{icon}</div>
+      <span className="text-[10px] font-bold tracking-widest text-white uppercase">{label}</span>
+    </div>
   );
 }
