@@ -46,6 +46,7 @@ describe('Dashboard command center', () => {
     expect(screen.getByText(/download operations/i)).toBeInTheDocument();
     expect(screen.getByText(/library intelligence/i)).toBeInTheDocument();
     expect(screen.getByText(/eq \/ signal chain/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/smart packs/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/quick actions/i)).toBeInTheDocument();
   });
 

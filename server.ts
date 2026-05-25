@@ -137,6 +137,8 @@ type Track = {
   coverArtUpdatedAt?: string;
   dominantColor?: string;
   accentColor?: string;
+  playCount?: number;
+  lastPlayedAt?: string;
   createdAt: number;
   updatedAt: number;
   favorite: boolean;
@@ -167,6 +169,8 @@ const migrateLegacyTrack = (raw: any): Track | null => {
       coverArtUpdatedAt: typeof raw.coverArtUpdatedAt === 'string' ? raw.coverArtUpdatedAt : undefined,
       dominantColor: typeof raw.dominantColor === 'string' ? raw.dominantColor : undefined,
       accentColor: typeof raw.accentColor === 'string' ? raw.accentColor : undefined,
+      playCount: typeof raw.playCount === 'number' ? raw.playCount : undefined,
+      lastPlayedAt: typeof raw.lastPlayedAt === 'string' ? raw.lastPlayedAt : undefined,
       createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
       updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
       favorite: Boolean(raw.favorite),
@@ -422,6 +426,9 @@ app.patch("/api/tracks/:id", (req, res) => {
   if (body.energyLevel !== undefined && (!Number.isInteger(body.energyLevel) || (body.energyLevel as number) < 1 || (body.energyLevel as number) > 5)) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
   if (body.explicit !== undefined && typeof body.explicit !== 'boolean') return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
   if (body.favorite !== undefined && typeof body.favorite !== 'boolean') return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+  if (body.playCount !== undefined && (!Number.isInteger(body.playCount) || (body.playCount as number) < 0)) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+  const lastPlayedAt = trimField(body.lastPlayedAt, 80, 'lastPlayedAt');
+  if (lastPlayedAt === null) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
   if (title !== undefined) t.title = title;
   if (artist !== undefined) t.artist = artist || 'Unknown Artist';
   if (album !== undefined) t.album = album || undefined;
@@ -433,6 +440,8 @@ app.patch("/api/tracks/:id", (req, res) => {
   if (body.energyLevel !== undefined) (t as any).energyLevel = body.energyLevel as 1|2|3|4|5;
   if (body.explicit !== undefined) (t as any).explicit = body.explicit as boolean;
   if (body.favorite !== undefined) t.favorite = body.favorite as boolean;
+  if (body.playCount !== undefined) (t as any).playCount = body.playCount as number;
+  if (lastPlayedAt !== undefined) (t as any).lastPlayedAt = lastPlayedAt || undefined;
   t.updatedAt = Date.now();
   saveDb();
   res.json(t);

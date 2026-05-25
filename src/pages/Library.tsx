@@ -10,6 +10,8 @@ import { Track, LOSSLESS_FORMATS } from '../types';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { MetadataLab } from '../components/library/MetadataLab';
 import { CoverArt } from '../components/media/CoverArt';
+import { buildMoodPacks, buildSmartPlaylists, getMoodColor } from '../lib/smartPlaylists';
+import { MoodPack, SmartPlaylistId } from '../types';
 
 const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title: string, subtitle: string, icon: React.ReactNode, color: string, className?: string, onClick?: () => void }) => {
    const colorMap: any = {
@@ -34,6 +36,64 @@ const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title
    );
 };
 
+const accentClass = (color?: string) => {
+   const map: Record<string, string> = {
+      cyan: 'border-neo-cyan/40 text-neo-cyan hover:border-neo-cyan',
+      magenta: 'border-neo-magenta/40 text-neo-magenta hover:border-neo-magenta',
+      lime: 'border-neo-lime/40 text-neo-lime hover:border-neo-lime',
+      yellow: 'border-neo-yellow/40 text-neo-yellow hover:border-neo-yellow',
+      blue: 'border-[rgba(0,128,255,0.45)] text-[rgba(0,128,255,0.9)] hover:border-[rgba(0,128,255,0.9)]',
+   };
+   return map[color || 'cyan'] || map.cyan;
+};
+
+function CollectionCard({
+   title,
+   description,
+   count,
+   color,
+   tracks,
+   onOpen,
+   onPlay,
+   onQueue,
+}: {
+   title: string;
+   description: string;
+   count: number;
+   color?: string;
+   tracks: Track[];
+   onOpen: () => void;
+   onPlay: () => void;
+   onQueue: () => void;
+}) {
+   return (
+      <div className={cn('border bg-[#060608] p-3 transition-colors hover:bg-[#0a0a0f]', accentClass(color))}>
+         <button type="button" onClick={onOpen} className="w-full text-left">
+            <div className="mb-3 flex -space-x-2">
+               {tracks.slice(0, 4).map(track => (
+                  <React.Fragment key={track.id}>
+                     <CoverArt track={track} size="sm" className="border-black/80" />
+                  </React.Fragment>
+               ))}
+               {tracks.length === 0 && (
+                  <div className="flex h-10 w-10 items-center justify-center border border-gray-800 bg-black text-gray-600">
+                     <Music className="h-5 w-5" />
+                  </div>
+               )}
+            </div>
+            <h3 className="truncate text-sm font-black uppercase italic tracking-widest text-white">{title}</h3>
+            <p className="mt-1 line-clamp-2 font-mono text-[10px] uppercase tracking-widest text-gray-500">{description}</p>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-widest">{count} TRACKS</p>
+         </button>
+         <div className="mt-3 grid grid-cols-3 gap-2">
+            <button type="button" disabled={count === 0} onClick={onPlay} className="border border-gray-800 bg-black px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:border-neo-cyan disabled:opacity-35">Play</button>
+            <button type="button" disabled={count === 0} onClick={onQueue} className="border border-gray-800 bg-black px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:border-neo-lime disabled:opacity-35">Queue</button>
+            <button type="button" onClick={onOpen} className="border border-gray-800 bg-black px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:border-neo-magenta">Open</button>
+         </div>
+      </div>
+   );
+}
+
 export function Library() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,7 +107,7 @@ export function Library() {
   const isPlaying = usePlayerStore(state => state.isPlaying);
   
   const [search, setSearch] = useState('');
-  type ViewState = 'vault' | 'downloaded' | 'recently_added' | 'lossless' | 'mood_packs' | 'mood_tracks' | 'playlists' | 'playlist_tracks';
+  type ViewState = 'vault' | 'downloaded' | 'recently_added' | 'lossless' | 'smart_tracks' | 'mood_packs' | 'mood_tracks' | 'playlists' | 'playlist_tracks';
   const [view, setView] = useState<ViewState>('vault');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -107,12 +167,33 @@ export function Library() {
   const totalBytes = useMemo(() => tracks.reduce((acc, t) => acc + (t.size || 0), 0), [tracks]);
   const TOTAL_CAPACITY = 5 * 1024 * 1024 * 1024; // 5 GB
   const storagePercent = Math.min(100, Math.round((totalBytes / TOTAL_CAPACITY) * 100));
+  const smartPlaylists = useMemo(() => buildSmartPlaylists(tracks), [tracks]);
+  const moodPacks = useMemo(() => buildMoodPacks(tracks), [tracks]);
+  const trackMap = useMemo(() => new Map(tracks.map(track => [track.id, track])), [tracks]);
 
   const handleBack = () => {
      if (view === 'mood_tracks') setView('mood_packs');
+     else if (view === 'smart_tracks') setView('vault');
      else if (view === 'playlist_tracks') setView('playlists');
      else setView('vault');
      setSearch('');
+  };
+
+  const openSmartPlaylist = (id: SmartPlaylistId) => {
+     setSelectedId(id);
+     setView('smart_tracks');
+     setSearch('');
+  };
+
+  const openMoodPack = (pack: MoodPack) => {
+     setSelectedId(pack.id);
+     setView('mood_tracks');
+     setSearch('');
+  };
+
+  const playTrackIds = (trackIds: string[]) => {
+     if (trackIds.length === 0) return;
+     playTrack(trackIds[0], trackIds);
   };
 
   const displayedTracks = useMemo(() => {
@@ -137,8 +218,17 @@ export function Library() {
                const fmt = (t.format || '').toLowerCase();
                return (LOSSLESS_FORMATS as readonly string[]).includes(fmt);
            });
+        case 'smart_tracks': {
+           const smart = smartPlaylists.find(pack => pack.id === selectedId);
+           if (!smart) return [];
+           return smart.trackIds.map(id => filtered.find(t => t.id === id)).filter(Boolean) as Track[];
+        }
         case 'mood_tracks':
-           return filtered.filter(t => t.genre && t.genre.toLowerCase().split(',').map(s=>s.trim()).includes((selectedId||'').toLowerCase()));
+           {
+             const pack = moodPacks.find(item => item.id === selectedId || item.mood === selectedId);
+             if (!pack) return [];
+             return pack.trackIds.map(id => filtered.find(t => t.id === id)).filter(Boolean) as Track[];
+           }
         case 'playlist_tracks': {
            const pl = playlists.find(p => p.id === selectedId);
            if (!pl) return [];
@@ -147,20 +237,7 @@ export function Library() {
         default:
            return filtered;
      }
-  }, [tracks, search, view, selectedId, playlists]);
-
-  const uniqueMoods = useMemo(() => {
-     const moods = new Set<string>();
-     tracks.forEach(t => {
-         if (t.genre) {
-             t.genre.split(',').forEach(g => {
-                 const m = g.trim().toUpperCase();
-                 if (m) moods.add(m);
-             });
-         }
-     });
-     return Array.from(moods).sort();
-  }, [tracks]);
+  }, [tracks, search, view, selectedId, playlists, smartPlaylists, moodPacks]);
 
   const filteredPlaylists = useMemo(() => {
      if (!search) return playlists;
@@ -265,6 +342,63 @@ export function Library() {
                  title="PLAYLISTS" subtitle="indexed" icon={<Music />} color="yellow" 
                  className="absolute left-1/2 -translate-x-1/2 top-[410px] w-[50%] lg:w-[40%]" onClick={() => setView('playlists')} 
               />
+              <div className="relative z-20 pt-[540px] space-y-6">
+                 <section>
+                    <div className="mb-3 flex items-end justify-between gap-3">
+                       <div>
+                          <h2 className="text-sm font-black uppercase tracking-widest text-neo-cyan">SMART PLAYLISTS</h2>
+                          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Auto-routed from real metadata and playback stats</p>
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                       {smartPlaylists.slice(0, 12).map(pack => (
+                          <React.Fragment key={pack.id}>
+                          <CollectionCard
+                            title={pack.name}
+                            description={pack.ruleSummary}
+                            count={pack.trackIds.length}
+                            color={pack.color}
+                            tracks={pack.trackIds.map(id => trackMap.get(id)).filter(Boolean) as Track[]}
+                            onOpen={() => openSmartPlaylist(pack.id)}
+                            onPlay={() => playTrackIds(pack.trackIds)}
+                            onQueue={() => addManyToQueue(pack.trackIds)}
+                          />
+                          </React.Fragment>
+                       ))}
+                    </div>
+                 </section>
+
+                 <section>
+                    <div className="mb-3 flex items-end justify-between gap-3">
+                       <div>
+                          <h2 className="text-sm font-black uppercase tracking-widest text-neo-lime">MOOD PACKS</h2>
+                          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Grouped by mood first, then genre and tags</p>
+                       </div>
+                    </div>
+                    {moodPacks.length ? (
+                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {moodPacks.slice(0, 8).map(pack => (
+                             <React.Fragment key={pack.id}>
+                             <CollectionCard
+                               title={pack.name}
+                               description={pack.description || 'Mood pack'}
+                               count={pack.trackIds.length}
+                               color={pack.color || getMoodColor(pack.mood)}
+                               tracks={pack.trackIds.map(id => trackMap.get(id)).filter(Boolean) as Track[]}
+                               onOpen={() => openMoodPack(pack)}
+                               onPlay={() => playTrackIds(pack.trackIds)}
+                               onQueue={() => addManyToQueue(pack.trackIds)}
+                             />
+                             </React.Fragment>
+                          ))}
+                       </div>
+                    ) : (
+                       <div className="border border-dashed border-neo-lime/20 bg-black/40 p-4 text-center font-mono text-xs uppercase tracking-widest text-neo-lime/50">
+                          NO SIGNALS MATCH THIS PACK
+                       </div>
+                    )}
+                 </section>
+              </div>
            </div>
          ) : (
            <div className="w-full flex-1 flex flex-col h-[550px]">
@@ -296,27 +430,35 @@ export function Library() {
               <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
                  {(() => {
                     if (view === 'mood_packs') {
-                       if (uniqueMoods.length === 0) return (
+                       if (moodPacks.length === 0) return (
                           <div className="text-center flex flex-col items-center justify-center h-full text-neo-lime/50 font-mono tracking-widest text-lg border-2 border-dashed border-neo-lime/20 rounded-xl bg-black/40 p-8">
                              <Smile className="w-12 h-12 mb-4 opacity-50" />
-                             NO MOOD PACKS INDEXED.
+                             NO SIGNALS MATCH THIS PACK
                              <p className="text-xs uppercase mt-4 max-w-xs text-gray-500">Edit track metadata to add genres and populate this vault.</p>
                           </div>
                        );
-                       return uniqueMoods.filter(m => !search || m.toLowerCase().includes(search.toLowerCase())).map((mood) => {
-                          const moodTrack = tracks.find(t => t.genre && t.genre.toLowerCase().split(',').map(s=>s.trim()).includes(mood.toLowerCase()));
+                       return moodPacks.filter(pack => !search || pack.name.toLowerCase().includes(search.toLowerCase())).map((pack) => {
+                          const moodTrack = pack.trackIds.map(id => trackMap.get(id)).find(Boolean) as Track | undefined;
                           return (
-                          <div key={mood} 
-                             onClick={() => { setSelectedId(mood); setView('mood_tracks'); }}
+                          <div key={pack.id} 
+                             onClick={() => openMoodPack(pack)}
                              className="flex items-center gap-4 cursor-pointer group mb-2 border border-neo-lime/30 bg-[#060608] hover:bg-neo-lime/10 p-4 rounded-lg transition-colors">
                              {moodTrack ? <CoverArt track={moodTrack} size="md" /> : <div className="w-12 h-12 rounded border border-neo-lime text-neo-lime flex items-center justify-center bg-black">
                                 <Smile className="w-6 h-6 drop-shadow-[0_0_5px_currentColor]" />
                              </div>}
                              <div className="flex-1">
                                 <h3 className="text-lg font-bold tracking-widest text-white italic uppercase drop-shadow-[0_0_5px_currentColor]">
-                                   {mood}
+                                   {pack.name}
                                 </h3>
-                                <p className="text-xs font-mono tracking-widest text-neo-lime mt-1 uppercase">PACK</p>
+                                <p className="text-xs font-mono tracking-widest text-neo-lime mt-1 uppercase">{pack.trackIds.length} TRACKS / PACK</p>
+                             </div>
+                             <div className="flex gap-2">
+                                <button type="button" onClick={(e) => { e.stopPropagation(); playTrackIds(pack.trackIds); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-cyan transition-colors" aria-label={`Play ${pack.name}`}>
+                                   <Play className="w-4 h-4 text-white" />
+                                </button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); addManyToQueue(pack.trackIds); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-lime transition-colors" aria-label={`Add ${pack.name} to queue`}>
+                                   <ListPlus className="w-4 h-4 text-neo-lime" />
+                                </button>
                              </div>
                           </div>
                        )});
@@ -376,7 +518,7 @@ export function Library() {
                        else if (view === 'downloaded') { Emptymessage = "NO DOWNLOADED TRACKS."; Icon = Download; colorClass = "text-neo-magenta/50"; borderClass = "border-neo-magenta/20"; }
                        else if (view === 'recently_added') { Emptymessage = "NO RECENT TRACKS."; Icon = Clock; colorClass = "text-neo-cyan/50"; borderClass = "border-neo-cyan/20"; }
                        else if (view === 'lossless') { Emptymessage = "NO HIGH-FIDELITY TRACKS."; Icon = Activity; colorClass = "text-blue-500/50"; borderClass = "border-blue-500/20"; }
-                       else if (view === 'mood_tracks') { Emptymessage = "NO TRACKS IN THIS MOOD."; Icon = Smile; colorClass = "text-neo-lime/50"; borderClass = "border-neo-lime/20"; }
+                       else if (view === 'mood_tracks' || view === 'smart_tracks') { Emptymessage = "NO SIGNALS MATCH THIS PACK"; Icon = Smile; colorClass = "text-neo-lime/50"; borderClass = "border-neo-lime/20"; }
                        else if (view === 'playlist_tracks') { Emptymessage = "PLAYLIST IS EMPTY."; Icon = Music; colorClass = "text-neo-yellow/50"; borderClass = "border-neo-yellow/20"; }
 
                        return (

@@ -116,6 +116,13 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Generated N.E.O fallback covers use deterministic neon reactor visuals based on track title, artist, genre, or mood.
 - Cover art appears across Library, Player, Dashboard, Queue, Track Detail, MiniPlayer, and Metadata Lab where those tracks are displayed.
 
+## Smart Playlists / Mood Packs
+
+- Smart Playlists are auto-generated from source type, quality, favorites, mood, tags, genre, created date, duration, and playback history.
+- Mood Packs are functional collections built from real `mood`, then `genre`, then `tags`; they can be opened, played, and added to the queue.
+- Playback stats track simple `playCount` and `lastPlayedAt` when a track is started, enabling Most Played and Never Played packs.
+- No fake tracks are generated; empty packs render truthful empty states.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`

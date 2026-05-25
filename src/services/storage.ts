@@ -43,7 +43,7 @@ async function extractApiError(res: Response, fallback: string): Promise<string>
 }
 
 // Fields the backend is willing to accept as metadata overrides on PATCH.
-type EditableTrackFields = Pick<Track, 'title' | 'artist' | 'album' | 'genre' | 'favorite' | 'mood' | 'tags' | 'notes' | 'energyLevel' | 'explicit' | 'coverArtUrl'>;
+type EditableTrackFields = Pick<Track, 'title' | 'artist' | 'album' | 'genre' | 'favorite' | 'mood' | 'tags' | 'notes' | 'energyLevel' | 'explicit' | 'coverArtUrl' | 'playCount' | 'lastPlayedAt'>;
 
 export const storage = {
   // Upload a new audio file. `overrides` may carry user-supplied title/artist;
@@ -84,6 +84,8 @@ export const storage = {
     if (track.energyLevel !== undefined) editable.energyLevel = track.energyLevel;
     if (track.explicit !== undefined) editable.explicit = track.explicit;
     if (track.coverArtUrl !== undefined) editable.coverArtUrl = track.coverArtUrl;
+    if (track.playCount !== undefined) editable.playCount = track.playCount;
+    if (track.lastPlayedAt !== undefined) editable.lastPlayedAt = track.lastPlayedAt;
 
     const res = await fetch(`/api/tracks/${track.id}`, {
       method: 'PATCH',

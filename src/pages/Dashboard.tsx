@@ -10,6 +10,7 @@ import { useEqualizerStore } from '../store/useEqualizerStore';
 import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { cn, formatDuration } from '../lib/utils';
 import { CoverArt } from '../components/media/CoverArt';
+import { buildSmartPlaylists } from '../lib/smartPlaylists';
 
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'analyzing', 'downloading', 'converting', 'indexing']);
 
@@ -46,6 +47,8 @@ export function Dashboard() {
     pause,
     resume,
     stop,
+    playTrack,
+    addManyToQueue,
     queue = [],
     queueIndex = 0,
   } = usePlayerStore();
@@ -89,6 +92,17 @@ export function Dashboard() {
     return tracks.filter((t) => (t.createdAt || 0) >= cutoff).length;
   }, [tracks]);
   const favoriteCount = useMemo(() => tracks.filter((t) => t.favorite).length, [tracks]);
+  const smartPacks = useMemo(() => {
+    const priority = ['recently-added', 'favorites', 'night-drive', 'high-quality'];
+    return buildSmartPlaylists(tracks)
+      .filter(pack => pack.trackIds.length > 0)
+      .sort((a, b) => {
+        const ai = priority.indexOf(a.id);
+        const bi = priority.indexOf(b.id);
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      })
+      .slice(0, 3);
+  }, [tracks]);
 
   const avgGain = useMemo(() => {
     if (!bandValues.length) return 0;
@@ -257,6 +271,43 @@ export function Dashboard() {
           <p className="text-xs font-mono">Spatial: {typeof spatial === 'number' ? spatial.toFixed(2) : 'N/A'}</p>
           <button className="mt-3 px-3 py-2 border border-neo-lime text-neo-lime text-xs" onClick={() => navigate('/equalizer')}>Open Equalizer</button>
         </div>
+      </section>
+
+      <section className="cyber-panel p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold tracking-widest uppercase text-neo-lime">Smart Packs</h3>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500">Recommended real-data collections</p>
+          </div>
+          <button className="px-3 py-2 border border-neo-lime text-neo-lime text-xs" onClick={() => navigate('/library')}>Open Library</button>
+        </div>
+        {smartPacks.length ? (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            {smartPacks.map(pack => {
+              const firstTrack = pack.trackIds.map(id => tracks.find(track => track.id === id)).find(Boolean);
+              return (
+                <div key={pack.id} className="border border-gray-800 bg-black/40 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    {firstTrack && <CoverArt track={firstTrack} size="sm" />}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold uppercase tracking-widest text-white">{pack.name}</p>
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-neo-lime">{pack.trackIds.length} tracks</p>
+                    </div>
+                  </div>
+                  <p className="min-h-8 text-[10px] font-mono uppercase tracking-widest text-gray-500">{pack.ruleSummary}</p>
+                  <div className="mt-3 flex gap-2">
+                    <button disabled={pack.trackIds.length === 0} onClick={() => playTrack(pack.trackIds[0], pack.trackIds)} className="px-3 py-2 border border-neo-cyan text-neo-cyan text-xs disabled:opacity-35">Play</button>
+                    <button disabled={pack.trackIds.length === 0} onClick={() => addManyToQueue(pack.trackIds)} className="px-3 py-2 border border-neo-lime text-neo-lime text-xs disabled:opacity-35">Add to Queue</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="border border-dashed border-gray-800 bg-black/40 p-3 text-center text-[10px] font-mono uppercase tracking-widest text-gray-500">
+            No smart packs available.
+          </p>
+        )}
       </section>
 
       <section className="cyber-panel p-4">

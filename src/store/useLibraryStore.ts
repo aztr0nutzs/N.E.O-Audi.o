@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { Track, Playlist } from '../types';
+import { Track, Playlist, MoodPack, SmartPlaylist, SmartPlaylistId } from '../types';
 import { storage } from '../services/storage';
 import toast from 'react-hot-toast';
+import { buildMoodPacks, buildSmartPlaylists } from '../lib/smartPlaylists';
 
 interface LibraryState {
   tracks: Track[];
@@ -17,6 +18,11 @@ interface LibraryState {
   updateTrack: (id: string, updates: Partial<Track>) => Promise<void>;
   uploadCoverArt: (trackId: string, file: File) => Promise<Track>;
   removeCoverArt: (trackId: string) => Promise<Track>;
+  getSmartPlaylists: () => SmartPlaylist[];
+  getMoodPacks: () => MoodPack[];
+  getTracksForSmartPlaylist: (id: SmartPlaylistId) => Track[];
+  getTracksForMoodPack: (idOrMood: string) => Track[];
+  recordTrackPlay: (trackId: string) => Promise<void>;
   addPlaylist: (playlist: Playlist) => Promise<void>;
   removePlaylist: (id: string) => Promise<void>;
   updatePlaylist: (id: string, updates: Partial<Playlist>) => Promise<void>;
@@ -95,6 +101,42 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to remove cover art');
       throw e;
+    }
+  },
+
+  getSmartPlaylists: () => buildSmartPlaylists(get().tracks),
+
+  getMoodPacks: () => buildMoodPacks(get().tracks),
+
+  getTracksForSmartPlaylist: (id) => {
+    const playlist = buildSmartPlaylists(get().tracks).find(pack => pack.id === id);
+    if (!playlist) return [];
+    const trackMap = new Map(get().tracks.map(track => [track.id, track]));
+    return playlist.trackIds.map(trackId => trackMap.get(trackId)).filter(Boolean) as Track[];
+  },
+
+  getTracksForMoodPack: (idOrMood) => {
+    const pack = buildMoodPacks(get().tracks).find(item => item.id === idOrMood || item.mood === idOrMood);
+    if (!pack) return [];
+    const trackMap = new Map(get().tracks.map(track => [track.id, track]));
+    return pack.trackIds.map(trackId => trackMap.get(trackId)).filter(Boolean) as Track[];
+  },
+
+  recordTrackPlay: async (trackId) => {
+    const track = get().tracks.find(t => t.id === trackId);
+    if (!track) return;
+    const updated = {
+      ...track,
+      playCount: (track.playCount || 0) + 1,
+      lastPlayedAt: new Date().toISOString(),
+      updatedAt: Date.now(),
+    };
+    set((state) => ({ tracks: state.tracks.map(t => t.id === trackId ? updated : t) }));
+    try {
+      const saved = await storage.saveTrack(updated);
+      if (saved) set((state) => ({ tracks: state.tracks.map(t => t.id === trackId ? saved : t) }));
+    } catch (e) {
+      console.warn('Failed to persist playback stats', e);
     }
   },
 

@@ -38,6 +38,8 @@ export interface Track {
   notes?: string;
   energyLevel?: 1 | 2 | 3 | 4 | 5;
   explicit?: boolean;
+  playCount?: number;
+  lastPlayedAt?: string;
 }
 
 export interface Playlist {
@@ -47,6 +49,41 @@ export interface Playlist {
   createdAt: number;
   updatedAt: number;
 }
+
+export type SmartPlaylistId =
+  | 'recently-added'
+  | 'favorites'
+  | 'most-played'
+  | 'never-played'
+  | 'downloaded'
+  | 'local-uploads'
+  | 'high-quality'
+  | 'bass-heavy'
+  | 'night-drive'
+  | 'chill-focus'
+  | 'vocals'
+  | 'retro-synth'
+  | 'long-tracks'
+  | 'short-tracks';
+
+export type SmartPlaylist = {
+  id: SmartPlaylistId;
+  name: string;
+  description: string;
+  icon?: string;
+  color?: string;
+  ruleSummary: string;
+  trackIds: string[];
+};
+
+export type MoodPack = {
+  id: string;
+  name: string;
+  mood: string;
+  trackIds: string[];
+  color?: string;
+  description?: string;
+};
 
 export type JobStatus = 'queued' | 'analyzing' | 'downloading' | 'converting' | 'indexing' | 'complete' | 'failed' | 'cancelled';
 

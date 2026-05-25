@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useLibraryStore } from './useLibraryStore';
 
 export interface QueueSnapshot {
   currentTrackId: string | null;
@@ -71,6 +72,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   analyserNode: null,
 
   playTrack: (trackId, newQueue) => {
+    void useLibraryStore.getState().recordTrackPlay(trackId);
     set((state) => {
       const q = newQueue && newQueue.length > 0 ? newQueue : (state.queue.length > 0 ? state.queue : [trackId]);
       const index = q.indexOf(trackId);
