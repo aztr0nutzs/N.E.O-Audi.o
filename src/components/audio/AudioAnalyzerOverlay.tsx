@@ -87,14 +87,15 @@ export function AudioAnalyzerOverlay() {
       ctx.fillText('NO LIVE SIGNAL', 16, 24);
     };
 
+    const freq = analyserNode ? new Uint8Array(analyserNode.frequencyBinCount) : null;
+    const time = analyserNode ? new Uint8Array(analyserNode.fftSize) : null;
+
     const drawLive = () => {
-      if (!ctx || !canvas) return;
+      if (!ctx || !canvas || !analyserNode || !freq || !time) return;
       const w = canvas.width;
       const h = canvas.height;
-      const freq = new Uint8Array(analyserNode!.frequencyBinCount);
-      const time = new Uint8Array(analyserNode!.fftSize);
-      analyserNode!.getByteFrequencyData(freq);
-      analyserNode!.getByteTimeDomainData(time);
+      analyserNode.getByteFrequencyData(freq);
+      analyserNode.getByteTimeDomainData(time);
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = 'rgba(4,8,16,0.92)';
       ctx.fillRect(0, 0, w, h);
