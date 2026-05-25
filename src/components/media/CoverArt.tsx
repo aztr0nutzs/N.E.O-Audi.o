@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Track } from '../../types';
 import { cn } from '../../lib/utils';
 import { GeneratedCoverArt } from './GeneratedCoverArt';
+import { resolveApiAssetUrl } from '../../services/apiBase';
 
 interface CoverArtProps {
   track: Track;
@@ -20,7 +21,7 @@ const sizeClasses: Record<NonNullable<CoverArtProps['size']>, string> = {
 
 export function CoverArt({ track, size = 'md', active, className, imageClassName }: CoverArtProps) {
   const [failed, setFailed] = useState(false);
-  const imageUrl = track.coverArtUrl || track.coverArt;
+  const imageUrl = resolveApiAssetUrl(track.coverArtUrl || track.coverArt);
 
   if (!imageUrl || failed) {
     return (
@@ -55,4 +56,3 @@ export function CoverArt({ track, size = 'md', active, className, imageClassName
     </div>
   );
 }
-

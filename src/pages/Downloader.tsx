@@ -18,7 +18,7 @@ export function Downloader() {
   const [format, setFormat] = useState(settings.defaultFormat || 'mp3');
   const [bitrate, setBitrate] = useState(settings.defaultBitrate || 320);
   
-  const { jobs, loadJobs, addJob, startJob, retryJob, removeJob, cancelJob, beginPolling, endPolling } = useDownloadStore();
+  const { jobs, loadJobs, addJob, startJob, retryJob, removeJob, cancelJob, beginPolling, endPolling, backendStatus, backendMessage } = useDownloadStore();
   const playTrack = usePlayerStore(state => state.playTrack);
   const [expandedDiagnostics, setExpandedDiagnostics] = useState<Record<string, boolean>>({});
 
@@ -109,6 +109,18 @@ export function Downloader() {
             <span>N.E.O. File Acquisition Engine</span>
          </div>
       </div>
+
+      {backendStatus === 'offline' && (
+        <div className="relative z-10 mx-auto mb-6 flex w-full max-w-2xl items-start gap-3 border border-neo-magenta/50 bg-black/70 p-3 text-left shadow-[0_0_18px_rgba(255,0,255,0.18)]">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-neo-magenta" />
+          <div>
+            <p className="font-mono text-xs font-bold uppercase tracking-widest text-neo-magenta">Backend offline / configure API endpoint</p>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-gray-500">
+              {backendMessage || 'Downloader jobs require a reachable N.E.O backend. Set VITE_API_BASE_URL for Android builds.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="relative flex flex-col lg:flex-row items-center lg:items-stretch justify-between w-full z-10 gap-12">
         

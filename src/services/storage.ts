@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { Track, Playlist, AppSettings } from '../types';
+import { apiFetch } from './apiBase';
 
 interface NeoDB extends DBSchema {
   playlists: {
@@ -58,7 +59,7 @@ export const storage = {
      if (typeof overrides.title === 'string' && overrides.title.trim()) metaPayload.title = overrides.title.trim();
      if (typeof overrides.artist === 'string' && overrides.artist.trim()) metaPayload.artist = overrides.artist.trim();
      fd.append('metadata', JSON.stringify(metaPayload));
-     const res = await fetch('/api/tracks/upload', { method: 'POST', body: fd });
+     const res = await apiFetch('/api/tracks/upload', { method: 'POST', body: fd });
      if (!res.ok) throw new Error(await extractApiError(res, 'Failed to upload'));
      return await res.json();
   },
@@ -87,7 +88,7 @@ export const storage = {
     if (track.playCount !== undefined) editable.playCount = track.playCount;
     if (track.lastPlayedAt !== undefined) editable.lastPlayedAt = track.lastPlayedAt;
 
-    const res = await fetch(`/api/tracks/${track.id}`, {
+    const res = await apiFetch(`/api/tracks/${track.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editable)
@@ -102,8 +103,8 @@ export const storage = {
   },
 
   async getAllTracks(): Promise<Track[]> {
-    const res = await fetch('/api/tracks');
-    if (!res.ok) return [];
+    const res = await apiFetch('/api/tracks');
+    if (!res.ok) throw new Error(await extractApiError(res, 'Failed to load tracks'));
     return await res.json();
   },
 
@@ -113,7 +114,7 @@ export const storage = {
   },
 
   async deleteTrack(id: string) {
-    const res = await fetch(`/api/tracks/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/tracks/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await extractApiError(res, 'Failed to delete track'));
     return await res.json().catch(() => ({ success: true }));
   },
@@ -121,13 +122,13 @@ export const storage = {
   async uploadCoverArt(trackId: string, file: File): Promise<Track> {
     const fd = new FormData();
     fd.append('cover', file);
-    const res = await fetch(`/api/tracks/${trackId}/cover`, { method: 'POST', body: fd });
+    const res = await apiFetch(`/api/tracks/${trackId}/cover`, { method: 'POST', body: fd });
     if (!res.ok) throw new Error(await extractApiError(res, 'Failed to upload cover art'));
     return await res.json();
   },
 
   async removeCoverArt(trackId: string): Promise<Track> {
-    const res = await fetch(`/api/tracks/${trackId}/cover`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/tracks/${trackId}/cover`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await extractApiError(res, 'Failed to remove cover art'));
     return await res.json();
   },

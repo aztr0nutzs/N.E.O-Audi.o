@@ -7,6 +7,8 @@ import { useLibraryStore } from './useLibraryStore';
 interface DownloadState {
   jobs: DownloadJob[];
   jobLogs: Record<string, string[]>;
+  backendStatus: 'unknown' | 'online' | 'offline';
+  backendMessage: string | null;
   loadJobs: () => Promise<void>;
   addJob: (url: string, format: string, bitrate: number) => Promise<DownloadJob | undefined>;
   removeJob: (id: string) => Promise<void>;
@@ -41,6 +43,8 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
   return {
     jobs: [],
     jobLogs: {},
+    backendStatus: 'unknown',
+    backendMessage: null,
 
     loadJobs: async () => {
       try {
@@ -63,9 +67,13 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
           startPolling(7000);
         }
 
-        set({ jobs });
+        set({ jobs, backendStatus: 'online', backendMessage: null });
       } catch (err) {
         console.error(err);
+        set({
+          backendStatus: 'offline',
+          backendMessage: err instanceof Error ? err.message : 'Backend offline / configure API endpoint',
+        });
       }
     },
 

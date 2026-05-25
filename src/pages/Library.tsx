@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
-import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X, ListPlus } from 'lucide-react';
+import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X, ListPlus, AlertCircle } from 'lucide-react';
 import { formatDuration } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { Track, LOSSLESS_FORMATS } from '../types';
@@ -99,6 +99,8 @@ export function Library() {
   const navigate = useNavigate();
   const tracks = useLibraryStore(state => state.tracks);
   const playlists = useLibraryStore(state => state.playlists);
+  const backendStatus = useLibraryStore(state => state.backendStatus);
+  const backendMessage = useLibraryStore(state => state.backendMessage);
   const removeTrack = useLibraryStore(state => state.removeTrack);
   const playTrack = usePlayerStore(state => state.playTrack);
   const addToQueue = usePlayerStore(state => state.addToQueue);
@@ -297,6 +299,18 @@ export function Library() {
             </p>
             <div className="h-px w-8 md:w-12 bg-neo-cyan opacity-50" />
          </div>
+
+         {backendStatus === 'offline' && (
+            <div className="mb-6 flex w-full max-w-2xl items-start gap-3 border border-neo-magenta/50 bg-black/70 p-3 text-left shadow-[0_0_18px_rgba(255,0,255,0.18)]">
+               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-neo-magenta" />
+               <div>
+                  <p className="font-mono text-xs font-bold uppercase tracking-widest text-neo-magenta">Backend offline / configure API endpoint</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-gray-500">
+                     {backendMessage || 'Server-powered library, upload, download, cover art, and stream features require a reachable N.E.O backend.'}
+                  </p>
+               </div>
+            </div>
+         )}
 
          {view === 'vault' ? (
            <div className="relative w-full max-w-lg mx-auto flex-1 min-h-[550px] mb-8">

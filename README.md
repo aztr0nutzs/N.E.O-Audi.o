@@ -137,6 +137,23 @@ N.E.O Audio Lab includes a Capacitor Android wrapper for building a debug APK fr
 
 Required tools: Node.js, npm, Android Studio, Android SDK, and a JDK compatible with the generated Gradle/Android plugin.
 
+Runtime architecture: the APK bundles the Vite frontend only. The Express server is not automatically started inside Android WebView, so upload, download, library indexing, cover upload, stream, and reset endpoints require a reachable N.E.O backend.
+
+By default, web builds use relative API paths such as `/api/tracks`. For Android or hosted frontend builds, set a backend origin before building:
+
+```bash
+VITE_API_BASE_URL=https://your-neo-backend.example.com npm run android:sync
+```
+
+PowerShell:
+
+```powershell
+$env:VITE_API_BASE_URL="https://your-neo-backend.example.com"
+npm run android:sync
+```
+
+If no backend is reachable, server-powered screens report `Backend offline / configure API endpoint` instead of assuming Express is bundled into the APK. Upload/download persistence currently uses the server `uploads/` directory; Android device storage requires future native integration.
+
 Setup and sync:
 
 ```bash

@@ -3,11 +3,14 @@ import { Track, Playlist, MoodPack, SmartPlaylist, SmartPlaylistId } from '../ty
 import { storage } from '../services/storage';
 import toast from 'react-hot-toast';
 import { buildMoodPacks, buildSmartPlaylists } from '../lib/smartPlaylists';
+import { resolveApiAssetUrl } from '../services/apiBase';
 
 interface LibraryState {
   tracks: Track[];
   playlists: Playlist[];
   isLoading: boolean;
+  backendStatus: 'unknown' | 'online' | 'offline';
+  backendMessage: string | null;
   loadLibrary: () => Promise<void>;
   // When `blob` is provided, `track` is treated as a Partial<Track> override
   // map (title/artist) and the backend derives every other field from the
@@ -33,16 +36,22 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   tracks: [],
   playlists: [],
   isLoading: true,
+  backendStatus: 'unknown',
+  backendMessage: null,
   
   loadLibrary: async () => {
     set({ isLoading: true });
     try {
       const tracks = await storage.getAllTracks();
       const playlists = await storage.getPlaylists();
-      set({ tracks: tracks || [], playlists: playlists || [], isLoading: false });
+      set({ tracks: tracks || [], playlists: playlists || [], isLoading: false, backendStatus: 'online', backendMessage: null });
     } catch (e) {
       console.error(e);
-      set({ isLoading: false });
+      set({
+        isLoading: false,
+        backendStatus: 'offline',
+        backendMessage: e instanceof Error ? e.message : 'Backend offline / configure API endpoint',
+      });
     }
   },
 
@@ -163,6 +172,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   getAudioUrl: async (trackId: string) => {
     const track = get().tracks.find(t => t.id === trackId);
     if (!track) return null;
-    return track.localUrl;
+    return resolveApiAssetUrl(track.localUrl) || null;
   }
 }));
