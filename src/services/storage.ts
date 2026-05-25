@@ -79,6 +79,11 @@ export const storage = {
     if (track.genre !== undefined) editable.genre = track.genre;
     if (track.favorite !== undefined) editable.favorite = track.favorite;
     if (track.mood !== undefined) editable.mood = track.mood;
+    if (track.tags !== undefined) editable.tags = track.tags;
+    if (track.notes !== undefined) editable.notes = track.notes;
+    if (track.energyLevel !== undefined) editable.energyLevel = track.energyLevel;
+    if (track.explicit !== undefined) editable.explicit = track.explicit;
+    if (track.coverArtUrl !== undefined) editable.coverArtUrl = track.coverArtUrl;
 
     const res = await fetch(`/api/tracks/${track.id}`, {
       method: 'PATCH',

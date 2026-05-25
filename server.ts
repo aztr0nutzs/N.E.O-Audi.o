@@ -127,6 +127,12 @@ type Track = {
   createdAt: number;
   updatedAt: number;
   favorite: boolean;
+  mood?: string;
+  tags?: string[];
+  notes?: string;
+  energyLevel?: 1 | 2 | 3 | 4 | 5;
+  explicit?: boolean;
+  coverArtUrl?: string;
 };
 
 // Migrate a legacy persisted track record (which may still hold 'url' / 'youtube'
@@ -152,6 +158,12 @@ const migrateLegacyTrack = (raw: any): Track | null => {
       createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
       updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
       favorite: Boolean(raw.favorite),
+      mood: typeof raw.mood === 'string' ? raw.mood : undefined,
+      notes: typeof raw.notes === 'string' ? raw.notes : undefined,
+      coverArtUrl: typeof raw.coverArtUrl === 'string' ? raw.coverArtUrl : undefined,
+      tags: Array.isArray(raw.tags) ? raw.tags.filter((tag: unknown): tag is string => typeof tag === 'string') : undefined,
+      energyLevel: [1, 2, 3, 4, 5].includes(raw.energyLevel) ? raw.energyLevel as 1 | 2 | 3 | 4 | 5 : undefined,
+      explicit: typeof raw.explicit === 'boolean' ? raw.explicit : undefined,
    };
 };
 
