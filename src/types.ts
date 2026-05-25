@@ -28,6 +28,12 @@ export interface Track {
   createdAt: number;
   updatedAt: number;
   favorite: boolean;
+  mood?: string;
+  tags?: string[];
+  notes?: string;
+  energyLevel?: 1 | 2 | 3 | 4 | 5;
+  explicit?: boolean;
+  coverArtUrl?: string;
 }
 
 export interface Playlist {
@@ -46,11 +52,13 @@ export interface DownloadJob {
   status: JobStatus;
   progress: number;
   phase: string;
+  sourceHostname?: string;
   error?: string;
   errorCode?: string;
   logs?: string[];
   startedAt?: number;
   outputFilename?: string;
+  fileSize?: number;
   actualBitrate?: number;
   actualDuration?: number;
   speed?: string;

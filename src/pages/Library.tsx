@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X, ListPlus } from 'lucide-react';
 import { formatDuration } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { Track, LOSSLESS_FORMATS } from '../types';
+import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
+import { MetadataLab } from '../components/library/MetadataLab';
 
 const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title: string, subtitle: string, icon: React.ReactNode, color: string, className?: string, onClick?: () => void }) => {
    const colorMap: any = {
@@ -33,6 +35,7 @@ const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title
 
 export function Library() {
   const location = useLocation();
+  const navigate = useNavigate();
   const tracks = useLibraryStore(state => state.tracks);
   const playlists = useLibraryStore(state => state.playlists);
   const removeTrack = useLibraryStore(state => state.removeTrack);
@@ -48,6 +51,7 @@ export function Library() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [editingTrack, setEditingTrack] = useState<string | null>(null);
+  const [labTrackId, setLabTrackId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editArtist, setEditArtist] = useState('');
   const [editGenre, setEditGenre] = useState('');
@@ -179,7 +183,9 @@ export function Library() {
 
   return (
     <div className="max-w-md md:max-w-4xl mx-auto min-h-[calc(100vh-100px)] p-2 md:p-4 flex flex-col items-center relative">
-      
+
+      <NeoAudioHeader className="w-full mb-4" alt="N.E.O Audio Lab library" />
+
       {/* Top Header */}
       <header className="w-full flex justify-between items-center z-20 mb-6 relative px-2">
          {view !== 'vault' ? (
@@ -394,7 +400,7 @@ export function Library() {
                                    <Music className="w-6 h-6 drop-shadow-[0_0_5px_currentColor]" />
                                 </div>
                                 <div className="flex-1">
-                                   <h3 className="text-sm font-bold tracking-widest text-white italic truncate uppercase drop-shadow-[0_0_5px_currentColor] max-w-[200px] sm:max-w-sm">
+                                   <h3 onClick={() => navigate(`/track/${track.id}`)} className="text-sm font-bold tracking-widest text-white italic truncate uppercase drop-shadow-[0_0_5px_currentColor] max-w-[200px] sm:max-w-sm cursor-pointer hover:text-neo-cyan">
                                       {track.title}
                                    </h3>
                                    <p className="text-[10px] font-mono tracking-widest text-gray-400 mt-1 uppercase whitespace-nowrap">
@@ -414,10 +420,13 @@ export function Library() {
                                    >
                                       <ListPlus className="w-4 h-4 text-gray-400 group-hover:text-neo-lime hover:text-neo-lime" />
                                    </button>
+                                   <button onClick={(e) => { e.stopPropagation(); navigate(`/track/${track.id}`); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-cyan transition-colors" aria-label="Track details">
+                                      <Folder className="w-4 h-4 text-gray-400 group-hover:text-neo-cyan hover:text-neo-cyan" />
+                                   </button>
                                    <button onClick={(e) => { e.stopPropagation(); setAddingToPlaylistTrack(track.id === addingToPlaylistTrack ? null : track.id); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-magenta transition-colors">
                                       <Plus className="w-4 h-4 text-gray-400 group-hover:text-neo-magenta hover:text-neo-magenta" />
                                    </button>
-                                   <button onClick={(e) => { e.stopPropagation(); handleEdit(track); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-yellow transition-colors">
+                                   <button onClick={(e) => { e.stopPropagation(); setLabTrackId(track.id); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-yellow transition-colors" aria-label="Metadata lab">
                                       <EditIcon className="w-4 h-4 text-gray-400 group-hover:text-neo-yellow hover:text-neo-yellow" />
                                    </button>
                                    {view === 'playlist_tracks' && selectedId ? (
@@ -502,6 +511,7 @@ export function Library() {
             </div>
          </div>
       </div>
+      {labTrackId && (() => { const lt = tracks.find(t => t.id === labTrackId); return lt ? <MetadataLab track={lt} open={!!labTrackId} onClose={() => setLabTrackId(null)} onSave={(patch) => useLibraryStore.getState().updateTrack(lt.id, patch)} /> : null; })()}
     </div>
   );
 }

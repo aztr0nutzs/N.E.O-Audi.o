@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 export interface QueueSnapshot {
   currentTrackId: string | null;
   queue: string[];
@@ -20,7 +21,7 @@ interface PlayerState {
   seekRequest: number | null;
   error: string | null;
   analyserNode: AnalyserNode | null;
-  
+
   playTrack: (trackId: string, queue?: string[]) => void;
   setQueue: (trackIds: string[], startTrackId?: string) => void;
   pause: () => void;
@@ -44,6 +45,8 @@ interface PlayerState {
   saveQueueSnapshot: () => QueueSnapshot;
   clearHistory: () => void;
   seekTo: (progress: number) => void;
+  seekForward: (seconds?: number) => void;
+  seekBackward: (seconds?: number) => void;
   clearSeekRequest: () => void;
   setError: (e: string | null) => void;
   setAnalyserNode: (node: AnalyserNode) => void;
@@ -112,12 +115,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   pause: () => set({ isPlaying: false }),
   resume: () => set({ isPlaying: true, error: null }),
-  stop: () => set({ isPlaying: false, progress: 0, seekRequest: null, error: null }),
+  stop: () => set({ isPlaying: false, progress: 0, seekRequest: 0, error: null }),
 
   next: () => {
     const { queue, queueIndex, currentTrackId, repeat, shuffle } = get();
     if (!currentTrackId) return;
-    
+
     if (repeat === 'one') {
       get().seekTo(0);
       set({ isPlaying: true, error: null });
@@ -135,33 +138,30 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (shuffle) {
       nextIndex = Math.floor(Math.random() * queue.length);
       nextId = queue[nextIndex];
-    } else {
-      if (nextIndex >= queue.length) {
-        if (repeat === 'all') {
-          nextIndex = 0;
-          nextId = queue[nextIndex];
-        } else {
-          set({ isPlaying: false, progress: 0, error: null });
-          return;
-        }
-      } else {
+    } else if (nextIndex >= queue.length) {
+      if (repeat === 'all') {
+        nextIndex = 0;
         nextId = queue[nextIndex];
+      } else {
+        set({ isPlaying: false, progress: 0, error: null });
+        return;
       }
+    } else {
+      nextId = queue[nextIndex];
     }
-    
+
     set((state) => ({
       history: [...state.history, state.currentTrackId!],
       currentTrackId: nextId,
       queueIndex: nextIndex,
       progress: 0,
-      error: null
+      error: null,
     }));
   },
 
   previous: () => {
     const { history, progress, duration } = get();
-    
-    // If we've played more than 3 seconds, just restart this song
+
     if (progress * duration > 3) {
       get().seekTo(0);
       return;
@@ -171,7 +171,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       get().seekTo(0);
       return;
     }
-    
+
     const prevId = history[history.length - 1];
     const newHistory = history.slice(0, -1);
 
@@ -180,23 +180,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       history: newHistory,
       queueIndex: state.queue.indexOf(prevId) !== -1 ? state.queue.indexOf(prevId) : state.queueIndex,
       progress: 0,
-      error: null
+      error: null,
     }));
   },
 
   setVolume: (volume) => set({ volume }),
   setProgress: (progress) => set({ progress }),
   setDuration: (duration) => set({ duration }),
-  
+
   toggleShuffle: () => set((state) => ({ shuffle: !state.shuffle })),
   toggleRepeat: () => set((state) => {
     const order: ('off' | 'all' | 'one')[] = ['off', 'all', 'one'];
     const idx = order.indexOf(state.repeat);
     return { repeat: order[(idx + 1) % order.length] };
   }),
-  
+
   setSpeed: (playbackSpeed) => set({ playbackSpeed }),
-  
+
   addToQueue: (trackId) => set((state) => ({ queue: [...state.queue, trackId] })),
 
   addManyToQueue: (trackIds) => {
@@ -206,9 +206,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   removeFromQueue: (trackId) => {
     set((state) => {
-      if (trackId === state.currentTrackId) {
-        return state;
-      }
+      if (trackId === state.currentTrackId) return state;
 
       const removedBeforeCursor = state.queue
         .slice(0, state.queueIndex)
@@ -292,7 +290,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   clearHistory: () => set({ history: [] }),
 
-  seekTo: (progress) => set({ seekRequest: progress, progress }),
+  seekTo: (progress) => {
+    const clamped = Math.max(0, Math.min(1, progress));
+    set({ seekRequest: clamped, progress: clamped });
+  },
+  seekForward: (seconds = 15) => {
+    const { duration, progress } = get();
+    if (!duration || duration <= 0) return;
+    const currentSeconds = (progress || 0) * duration;
+    const nextSeconds = Math.min(duration, currentSeconds + seconds);
+    get().seekTo(nextSeconds / duration);
+  },
+  seekBackward: (seconds = 15) => {
+    const { duration, progress } = get();
+    if (!duration || duration <= 0) return;
+    const currentSeconds = (progress || 0) * duration;
+    const nextSeconds = Math.max(0, currentSeconds - seconds);
+    get().seekTo(nextSeconds / duration);
+  },
   clearSeekRequest: () => set({ seekRequest: null }),
   setError: (error) => set({ error }),
   setAnalyserNode: (node) => set({ analyserNode: node }),

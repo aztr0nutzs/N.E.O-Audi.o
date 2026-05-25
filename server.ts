@@ -54,7 +54,8 @@ type EngineErrorCode =
    | 'download_failed'
    | 'conversion_failed'
    | 'verification_failed'
-   | 'cancelled';
+   | 'cancelled'
+   | 'server_restarted';
 
 class EngineError extends Error {
    code: EngineErrorCode;
@@ -345,37 +346,47 @@ const validateOptionalTrimmedString = (value: unknown): string | undefined | nul
 app.patch("/api/tracks/:id", (req, res) => {
   const id = req.params.id;
   const trackIdx = tracks.findIndex(t => t.id === id);
-  if (trackIdx === -1) {
-     return res.status(404).json({ error: "Track not found" });
+  if (trackIdx === -1) return res.status(404).json({ error: "Track not found", errorCode: "track_not_found" });
+  const body = (req.body && typeof req.body === 'object') ? req.body as Record<string, unknown> : {};
+  const t = tracks[trackIdx];
+  const trimField = (v: unknown, max: number, name: string): string | undefined | null => {
+    if (v === undefined) return undefined;
+    if (typeof v !== 'string') return null;
+    return v.trim().slice(0, max);
+  };
+  const title = trimField(body.title, 120, 'title');
+  const artist = trimField(body.artist, 120, 'artist');
+  const album = trimField(body.album, 120, 'album');
+  const genre = trimField(body.genre, 80, 'genre');
+  const mood = trimField(body.mood, 80, 'mood');
+  const notes = trimField(body.notes, 1000, 'notes');
+  const coverArtUrl = trimField(body.coverArtUrl, 500, 'coverArtUrl');
+  if ([title,artist,album,genre,mood,notes,coverArtUrl].includes(null)) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+  if (title !== undefined && title.length === 0) return res.status(400).json({ error: 'Invalid title', errorCode: 'invalid_title' });
+  const tagsRaw = body.tags;
+  let tags: string[] | undefined = undefined;
+  if (tagsRaw !== undefined) {
+    if (!Array.isArray(tagsRaw) || tagsRaw.some(v => typeof v !== 'string')) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+    tags = Array.from(new Set(tagsRaw.map(v => v.trim()).filter(Boolean)));
+    if (tags.length > 20 || tags.some(tg => tg.length > 40)) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
   }
-
-  const body = (req.body && typeof req.body === 'object') ? req.body : {};
-  const { title, artist, album, genre, favorite } = body as Record<string, unknown>;
-
-  const titleVal = validateOptionalTrimmedString(title);
-  const artistVal = validateOptionalTrimmedString(artist);
-  const albumVal = validateOptionalTrimmedString(album);
-  const genreVal = validateOptionalTrimmedString(genre);
-  if (titleVal === null || artistVal === null || albumVal === null || genreVal === null) {
-     return res.status(400).json({ error: "Invalid metadata: title/artist/album/genre must be strings." });
-  }
-  if (favorite !== undefined && typeof favorite !== 'boolean') {
-     return res.status(400).json({ error: "Invalid metadata: favorite must be boolean." });
-  }
-  if (titleVal !== undefined && titleVal.length === 0) {
-     return res.status(400).json({ error: "Title must not be empty." });
-  }
-
-  const track = tracks[trackIdx];
-  if (titleVal !== undefined) track.title = titleVal;
-  if (artistVal !== undefined) track.artist = artistVal || 'Unknown Artist';
-  if (albumVal !== undefined) track.album = albumVal || undefined;
-  if (genreVal !== undefined) track.genre = genreVal || undefined;
-  if (favorite !== undefined) track.favorite = favorite as boolean;
-  track.updatedAt = Date.now();
-
+  if (body.energyLevel !== undefined && (!Number.isInteger(body.energyLevel) || (body.energyLevel as number) < 1 || (body.energyLevel as number) > 5)) return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+  if (body.explicit !== undefined && typeof body.explicit !== 'boolean') return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+  if (body.favorite !== undefined && typeof body.favorite !== 'boolean') return res.status(400).json({ error: 'Invalid metadata', errorCode: 'invalid_metadata' });
+  if (title !== undefined) t.title = title;
+  if (artist !== undefined) t.artist = artist || 'Unknown Artist';
+  if (album !== undefined) t.album = album || undefined;
+  if (genre !== undefined) t.genre = genre || undefined;
+  if (mood !== undefined) (t as any).mood = mood || undefined;
+  if (notes !== undefined) (t as any).notes = notes || undefined;
+  if (coverArtUrl !== undefined) (t as any).coverArtUrl = coverArtUrl || undefined;
+  if (tags !== undefined) (t as any).tags = tags;
+  if (body.energyLevel !== undefined) (t as any).energyLevel = body.energyLevel as 1|2|3|4|5;
+  if (body.explicit !== undefined) (t as any).explicit = body.explicit as boolean;
+  if (body.favorite !== undefined) t.favorite = body.favorite as boolean;
+  t.updatedAt = Date.now();
   saveDb();
-  res.json(track);
+  res.json(t);
 });
 
 // API: Stream file
@@ -442,6 +453,7 @@ interface DownloadJob {
   phase: string;
   format: SupportedFormat;
   bitrate: number;
+  sourceHostname?: string;
   error?: string;
   errorCode?: string;
   logs?: string[];
@@ -449,6 +461,7 @@ interface DownloadJob {
   outputFilename?: string;
   actualBitrate?: number;
   actualDuration?: number;
+  fileSize?: number;
   speed?: string;
   eta?: string;
   createdAt: number;
@@ -553,7 +566,7 @@ for (const job of downloadJobs) {
         job.status = 'failed';
         job.phase = 'Failed';
         job.error = 'Server was restarted before job could complete';
-        job.errorCode = 'ERR_SERVER_RESTARTED';
+        job.errorCode = 'server_restarted';
         job.updatedAt = Date.now();
     }
 }
@@ -646,16 +659,20 @@ const runDownloadEngine = async (jobId: string) => {
     job.eta = undefined;
     saveJobsDb();
 
-    const log = (msg: string) => {
-        if (job.logs) job.logs.push(`[${new Date().toISOString()}] ${msg}`);
+    const pushLog = (message: string) => {
+        if (!job.logs) job.logs = [];
+        job.logs.push(`[${new Date().toISOString()}] ${message}`);
+        if (job.logs.length > 100) job.logs = job.logs.slice(-100);
     };
+    const log = (msg: string) => pushLog(msg);
 
     const wasCancelled = () => {
        const j = downloadJobs.find(x => x.id === jobId);
        return j && j.status === 'cancelled';
     };
 
-    log(`Started processing: ${job.sourceUrl}`);
+    log('start requested');
+    log(`queued -> processing ${job.sourceUrl}`);
 
     let actualFile = '';
     let outputBase = '';
@@ -722,6 +739,7 @@ const runDownloadEngine = async (jobId: string) => {
         // ---- Phase 2: downloading (10-75) ----
         job.status = 'downloading';
         job.phase = 'Downloading...';
+        log('downloading');
         job.progress = 10;
         job.updatedAt = Date.now();
         saveJobsDb();
@@ -769,6 +787,7 @@ const runDownloadEngine = async (jobId: string) => {
             if ((output.includes('[ExtractAudio]') || output.includes('Destination:')) && (job.status as string) !== 'converting') {
                 job.status = 'converting';
                 job.phase = 'Converting format (ffmpeg)...';
+                log('converting');
                 job.progress = Math.max(job.progress, 78);
                 job.speed = undefined;
                 job.eta = undefined;
@@ -873,6 +892,7 @@ const runDownloadEngine = async (jobId: string) => {
         // ---- Phase 4: indexing/verifying (95-99 until Track is created) ----
         job.status = 'indexing';
         job.phase = 'Verifying and finalizing track...';
+        log('verifying');
         job.progress = 96;
         job.updatedAt = Date.now();
         saveJobsDb();
@@ -927,6 +947,7 @@ const runDownloadEngine = async (jobId: string) => {
         job.outputFilename = actualFile;
         job.actualDuration = actualDuration;
         job.actualBitrate = actualBitrate || job.bitrate;
+        job.fileSize = stat.size;
 
         // ---- Phase 5: create Track only after every check passes ----
         const newTrack: Track = {
@@ -957,7 +978,8 @@ const runDownloadEngine = async (jobId: string) => {
         job.updatedAt = Date.now();
         job.speed = undefined;
         job.eta = undefined;
-        log('Job completed successfully');
+        log('indexed');
+        log('complete');
         saveJobsDb();
 
     } catch (err: any) {
@@ -976,7 +998,7 @@ const runDownloadEngine = async (jobId: string) => {
                 j.errorCode = 'cancelled';
                 j.error = 'Cancelled';
                 j.updatedAt = Date.now();
-                log('Job ended due to cancellation');
+                log('cancelled');
                 saveJobsDb();
             }
         } else {
@@ -985,7 +1007,7 @@ const runDownloadEngine = async (jobId: string) => {
             job.error = message;
             job.errorCode = code;
             job.updatedAt = Date.now();
-            if (job.logs) job.logs.push(`[${new Date().toISOString()}] [ERROR ${code}] ${message}`);
+            log(`failed [${code}] ${message}`);
             saveJobsDb();
         }
 
@@ -1048,6 +1070,8 @@ app.post("/api/download-jobs", (req, res) => {
        phase: 'Queued',
        format,
        bitrate,
+       sourceHostname: parsedUrl.hostname,
+       logs: [`[${new Date().toISOString()}] queued`],
        createdAt: Date.now(),
        updatedAt: Date.now()
    };
@@ -1132,6 +1156,7 @@ app.post("/api/download-jobs/:id/retry", (req, res) => {
    job.error = undefined;
    job.errorCode = undefined;
    job.logs = [];
+   job.logs = [`[${new Date().toISOString()}] retry`];
    job.actualDuration = undefined;
    job.actualBitrate = undefined;
    job.outputFilename = undefined;
@@ -1159,7 +1184,10 @@ app.post("/api/download-jobs/:id/cancel", (req, res) => {
    job.phase = 'Cancelled';
    job.errorCode = 'cancelled';
    job.updatedAt = Date.now();
-   if (job.logs) job.logs.push(`[${new Date().toISOString()}] Job cancelled by user.`);
+   if (job.logs) {
+      job.logs.push(`[${new Date().toISOString()}] cancelled`);
+      if (job.logs.length > 100) job.logs = job.logs.slice(-100);
+   }
 
    killJobProcess(job.id);
    cleanupJobFiles(job.id);

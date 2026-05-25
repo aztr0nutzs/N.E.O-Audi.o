@@ -61,6 +61,37 @@ When a job fails, `errorCode` is one of:
 - `verification_failed` — output file fails ffprobe / size / extension checks
 - `cancelled` — user cancelled the job
 
+## App Icon
+
+The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` and is exported through `src/lib/neoAudioAssets.ts` as `NEO_AUDIO_ICON`. It is also referenced as the web favicon (`/favicon.png`), `apple-touch-icon`, and PWA manifest icon (`/manifest.json`).
+
+> **APK launcher icon requires an Android/Capacitor wrapper.** This repository ships the web app only, so web/PWA icon is configured using `neo_audio_icon.png`. To produce Android launcher densities (`mipmap-mdpi`/`hdpi`/`xhdpi`/`xxhdpi`/`xxxhdpi`), add a Capacitor (or equivalent) wrapper and generate `ic_launcher.png` from `public/assets/neo_audio/neo_audio_icon.png`.
+
+## N.E.O Audio UI Assets
+
+- **Player transport controls** use the 14 supplied N.E.O Audio image buttons rendered through `<NeoImageButton>` (real `<button>` elements with `aria-label`, keyboard activation, active glow, and dimmed disabled state). The mapping is:
+
+  | Asset | Action |
+  | --- | --- |
+  | `play.png` | Resume / play |
+  | `pause.png` | Pause |
+  | `stop.png` | Stop playback (pause + reset to 0) |
+  | `next.png` | Next track |
+  | `last.png` | Previous track |
+  | `fast-fwd.png` | Seek forward 15 seconds |
+  | `rewind.png` | Seek backward 15 seconds |
+  | `shuffle.png` | Toggle shuffle (active glow) |
+  | `repeat.png` | Cycle repeat mode (active glow) |
+  | `playlist.png` | Navigate to `/library` |
+  | `eq.png` | Navigate to `/equalizer` |
+  | `equalizer.png` | Navigate to `/equalizer` (advanced shortcut) |
+  | `download.png` | Navigate to `/download` |
+  | `settings.png` | Navigate to `/settings` |
+
+- **Bottom dock** uses `public/assets/neo_audio/neo_audio_dock.png` as the visual rail. The dock image is decorative — real overlay `<NavLink>` and `<button>` elements sit on top with their own hit areas (HOME → `/`, CHAT slot disabled, CENTER N → `/player`, GAMES → `/library`, SETTINGS → `/settings`). A compact secondary strip below the dock keeps `/download`, `/upload`, and `/equalizer` reachable so no route is hidden behind dead art.
+- **Headers** use `neo_audio_header1.png` and `neo_audio_header2.png` rotated through `<NeoAudioHeader>` (Dashboard, Downloader, Uploader, Library, Player, Equalizer, Settings).
+- **Web/PWA icon** uses `neo_audio_icon.png` as documented above.
+
 ## Queue / Up Next
 
 - Real playback queue with the current signal, Up Next list, and playback history.
@@ -74,3 +105,29 @@ When a job fails, `errorCode` is one of:
 - `npm run lint` — `tsc --noEmit`
 - `npm run build` — Vite production build + server bundle
 - `npm test` — Vitest suites: backend supertest cases, UI smoke renders, player/equalizer store tests
+
+## Audio Command Center
+
+- Dashboard at `/` now acts as a live command center for playback state, library intelligence, downloader operations, EQ/signal-chain status, and quick actions.
+- All dashboard values are sourced from real store state (player, library, download jobs, EQ), with explicit standby/empty states when no data exists.
+- Empty states are truthful: no fake track, storage, or job telemetry is rendered.
+
+
+## Live Audio Analyzer
+
+- Analyzer overlay provides Spectrum, Waveform, Stereo estimate, and Reactor modes.
+- When live playback is running, visuals read from the Web Audio `AnalyserNode` in real time.
+- When no live signal exists, analyzer shows truthful standby visuals/states (no fake telemetry).
+
+
+## Metadata Lab
+
+- Edit track title, artist, album, genre, mood, tags, notes, favorite state, explicit flag, and energy level.
+- Mood Packs are powered by mood/genre/tag metadata.
+- Metadata persists through `PATCH /api/tracks/:id`.
+
+## Download Job Diagnostics
+
+- Every downloader job now includes rich diagnostics: phase, progress, status, speed/ETA (when available), output metadata, and retry/cancel/remove actions.
+- Failed downloads can be inspected in a neon terminal-style diagnostics drawer that exposes error code/message and recent log lines.
+- Job logs are capped to prevent unbounded memory/storage growth.

@@ -1,5 +1,7 @@
 import { JobStatus, DownloadJob, Track } from '../types';
 
+type DownloadJobLogsResponse = { id: string; logs: string[] };
+
 export const api = {
   async getDownloadJobs(): Promise<DownloadJob[]> {
     const res = await fetch('/api/download-jobs');
@@ -45,6 +47,13 @@ export const api = {
       const data = await res.json();
       throw new Error(data.error || "Failed to delete job");
     }
+  },
+
+  async getDownloadJobLogs(id: string): Promise<DownloadJobLogsResponse> {
+    const res = await fetch(`/api/download-jobs/${id}/logs`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch job logs");
+    return data;
   },
 
   async factoryReset(): Promise<{ summary: any }> {

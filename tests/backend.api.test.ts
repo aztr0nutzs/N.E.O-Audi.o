@@ -47,6 +47,19 @@ describe('POST /api/download-jobs validation', () => {
     expect(res.body.sourceUrl).toBe(url);
     if (res.body.id) createdJobIds.push(res.body.id);
   });
+
+  it('GET /api/download-jobs/:id/logs returns logs for existing job', async () => {
+    const create = await request(app)
+      .post('/api/download-jobs')
+      .send({ url: 'https://example.com/with-logs.mp3', format: 'mp3', bitrate: 320 });
+    expect([200, 201]).toContain(create.status);
+    const id = create.body.id;
+    createdJobIds.push(id);
+    const res = await request(app).get(`/api/download-jobs/${id}/logs`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(id);
+    expect(Array.isArray(res.body.logs)).toBe(true);
+  });
 });
 
 describe('Download job operations on missing job ids', () => {
@@ -68,5 +81,13 @@ describe('Download job operations on missing job ids', () => {
   it('GET /api/download-jobs/missing/logs returns 404', async () => {
     const res = await request(app).get('/api/download-jobs/missing/logs');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /api/tracks/:id metadata validation', () => {
+  it('missing track returns track_not_found', async () => {
+    const res = await request(app).patch('/api/tracks/missing-track').send({ title: 'X' });
+    expect(res.status).toBe(404);
+    expect(res.body.errorCode).toBe('track_not_found');
   });
 });

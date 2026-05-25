@@ -6,6 +6,7 @@ import { useLibraryStore } from './useLibraryStore';
 
 interface DownloadState {
   jobs: DownloadJob[];
+  jobLogs: Record<string, string[]>;
   loadJobs: () => Promise<void>;
   addJob: (url: string, format: string, bitrate: number) => Promise<DownloadJob | undefined>;
   removeJob: (id: string) => Promise<void>;
@@ -14,6 +15,7 @@ interface DownloadState {
   cancelJob: (id: string) => Promise<void>;
   beginPolling: () => void;
   endPolling: () => void;
+  loadJobLogs: (id: string, force?: boolean) => Promise<string[]>;
 }
 
 let pollingInterval: any = null;
@@ -38,6 +40,7 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
 
   return {
     jobs: [],
+    jobLogs: {},
 
     loadJobs: async () => {
       try {
@@ -126,6 +129,19 @@ export const useDownloadStore = create<DownloadState>((set, get) => {
 
     endPolling: () => {
       stopPolling();
+    },
+
+    loadJobLogs: async (id, force = false) => {
+      const existing = get().jobLogs[id];
+      if (existing && !force) return existing;
+      try {
+        const data = await api.getDownloadJobLogs(id);
+        set((state) => ({ jobLogs: { ...state.jobLogs, [id]: data.logs } }));
+        return data.logs;
+      } catch (err) {
+        console.error(err);
+        return existing || [];
+      }
     }
   };
 });

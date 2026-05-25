@@ -6,4 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
-uploads/
+uploads/*
+!uploads/db.json
+!uploads/jobs.json
+.vite/
+*.zip
