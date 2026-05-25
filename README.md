@@ -123,6 +123,14 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Playback stats track simple `playCount` and `lastPlayedAt` when a track is started, enabling Most Played and Never Played packs.
 - No fake tracks are generated; empty packs render truthful empty states.
 
+## Signal Chain Audio Enhancements
+
+- Web Audio graph now runs `SOURCE -> EQ -> BASS -> VOCAL -> NIGHT -> COMPRESSOR -> SPATIAL -> LIMITER -> OUTPUT -> ANALYSER`.
+- Signal modules include EQ, Bass Enhancer, Spatial, Compressor, Limiter, Night Mode, and Vocal Clarity with toggles and intensity controls.
+- Limiter/clipping protection is enabled by default, with an analyser-based estimated peak warning.
+- Signal chain presets include Clean, Bass Reactor, Night Drive, Vocal Focus, Safe Loud, and Wide Space.
+- EQ slider behavior and existing playback/analyser behavior are preserved.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`

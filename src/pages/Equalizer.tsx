@@ -9,6 +9,7 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { EqCurvePreview } from '../components/equalizer/EqCurvePreview';
+import { SignalChainPanel } from '../components/audio/SignalChainPanel';
 
 const PRESET_CATEGORIES: Array<{ id: EqPresetCategory; label: string }> = [
   { id: 'core', label: 'Core' },
@@ -335,6 +336,13 @@ export function Equalizer() {
           <CompareButton label="Clear A/B" onClick={clearCompare} />
           <CompareButton label="Open Analyzer" onClick={() => setAnalyzerOpen(true)} />
         </div>
+      </section>
+
+      <section className="w-full mb-8">
+        <h2 className="mb-3 text-xl md:text-2xl font-black italic uppercase tracking-widest text-neo-cyan drop-shadow-[0_0_10px_currentColor]">
+          AUDIO SIGNAL CHAIN
+        </h2>
+        <SignalChainPanel />
       </section>
 
       {/* Main Layout containing Sliders and Reactor */}

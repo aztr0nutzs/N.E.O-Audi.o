@@ -11,6 +11,7 @@ import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { cn, formatDuration } from '../lib/utils';
 import { CoverArt } from '../components/media/CoverArt';
 import { buildSmartPlaylists } from '../lib/smartPlaylists';
+import { useSignalChainStore } from '../store/useSignalChainStore';
 
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'analyzing', 'downloading', 'converting', 'indexing']);
 
@@ -56,6 +57,7 @@ export function Dashboard() {
   const { tracks, playlists, loadLibrary } = useLibraryStore();
   const { jobs, loadJobs } = useDownloadStore();
   const { isOn, activePreset, bandValues, spatial } = useEqualizerStore();
+  const { modules: signalModules, clippingWarning } = useSignalChainStore();
 
   const currentTrack = useMemo(() => tracks.find((t) => t.id === currentTrackId) || null, [tracks, currentTrackId]);
   const upNext = useMemo(() => {
@@ -92,6 +94,7 @@ export function Dashboard() {
     return tracks.filter((t) => (t.createdAt || 0) >= cutoff).length;
   }, [tracks]);
   const favoriteCount = useMemo(() => tracks.filter((t) => t.favorite).length, [tracks]);
+  const activeSignalModules = useMemo(() => Object.values(signalModules).filter(module => module.enabled).length, [signalModules]);
   const smartPacks = useMemo(() => {
     const priority = ['recently-added', 'favorites', 'night-drive', 'high-quality'];
     return buildSmartPlaylists(tracks)
@@ -270,6 +273,19 @@ export function Dashboard() {
           <p className="text-xs font-mono">Gain: {Math.abs(avgGain) < 0.01 ? 'Flat' : `${avgGain.toFixed(1)} dB avg`}</p>
           <p className="text-xs font-mono">Spatial: {typeof spatial === 'number' ? spatial.toFixed(2) : 'N/A'}</p>
           <button className="mt-3 px-3 py-2 border border-neo-lime text-neo-lime text-xs" onClick={() => navigate('/equalizer')}>Open Equalizer</button>
+        </div>
+      </section>
+
+      <section className="cyber-panel p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-sm font-bold tracking-widest uppercase text-neo-cyan mb-2">Signal Chain Status</h3>
+            <p className="text-xs font-mono">Active modules: {activeSignalModules} · Limiter: {signalModules.limiter.enabled ? 'ON' : 'OFF'}</p>
+            <p className={cn('text-xs font-mono', clippingWarning ? 'text-neo-red' : 'text-gray-300')}>
+              Clipping: {clippingWarning ? 'ESTIMATED RISK' : 'CLEAR'}
+            </p>
+          </div>
+          <button className="px-3 py-2 border border-neo-cyan text-neo-cyan text-xs" onClick={() => navigate('/equalizer')}>Open Equalizer / Signal Chain</button>
         </div>
       </section>
 

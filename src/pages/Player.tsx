@@ -14,6 +14,7 @@ import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
 import { MetadataLab } from '../components/library/MetadataLab';
 import { QueuePanel } from '../components/player/QueuePanel';
 import { CoverArt } from '../components/media/CoverArt';
+import { useSignalChainStore } from '../store/useSignalChainStore';
 
 export function Player() {
   const {
@@ -25,6 +26,8 @@ export function Player() {
   const tracks = useLibraryStore(state => state.tracks);
   const navigate = useNavigate();
   const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
+  const signalModules = useSignalChainStore(state => state.modules);
+  const clippingWarning = useSignalChainStore(state => state.clippingWarning);
 
   const track = tracks.find(t => t.id === currentTrackId);
   const duration = audioDuration || track?.duration || 0;
@@ -207,6 +210,27 @@ export function Player() {
                {error}
             </div>
          )}
+      </div>
+
+      <div className="w-full cyber-panel border-neo-cyan/30 p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neo-cyan">Signal Chain</span>
+          <button
+            type="button"
+            onClick={() => navigate('/equalizer')}
+            className="border border-neo-cyan/50 bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-neo-cyan hover:bg-neo-cyan/10"
+          >
+            Open Signal Chain
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          {(['eq', 'bass', 'spatial', 'limiter'] as const).map(id => (
+            <div key={id} className={cn('border bg-black/50 px-2 py-2 font-mono text-[9px] uppercase tracking-widest', signalModules[id].enabled ? 'border-neo-lime text-neo-lime' : 'border-gray-800 text-gray-500')}>
+              {id}
+            </div>
+          ))}
+        </div>
+        {clippingWarning && <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-neo-red">Estimated clipping risk</p>}
       </div>
 
       {/* Bottom Interface */}
