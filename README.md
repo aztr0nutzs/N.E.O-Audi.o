@@ -97,3 +97,16 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - `npm run lint` — `tsc --noEmit`
 - `npm run build` — Vite production build + server bundle
 - `npm test` — Vitest suites: backend supertest cases, UI smoke renders, player/equalizer store tests
+
+## Audio Command Center
+
+- Dashboard at `/` now acts as a live command center for playback state, library intelligence, downloader operations, EQ/signal-chain status, and quick actions.
+- All dashboard values are sourced from real store state (player, library, download jobs, EQ), with explicit standby/empty states when no data exists.
+- Empty states are truthful: no fake track, storage, or job telemetry is rendered.
+
+
+## Live Audio Analyzer
+
+- Analyzer overlay provides Spectrum, Waveform, Stereo estimate, and Reactor modes.
+- When live playback is running, visuals read from the Web Audio `AnalyserNode` in real time.
+- When no live signal exists, analyzer shows truthful standby visuals/states (no fake telemetry).

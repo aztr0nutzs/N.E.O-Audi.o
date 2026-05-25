@@ -6,11 +6,13 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useEqualizerStore, BANDS } from '../store/useEqualizerStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
+import { useAnalyzerStore } from '../store/useAnalyzerStore';
 
 export function Equalizer() {
   const { isOn, setIsOn, bandValues, setBandValue, setPreset, saveCustomPreset, activePreset, spatial, setSpatial } = useEqualizerStore();
   const { isPlaying, currentTrackId, progress, analyserNode } = usePlayerStore();
   const tracks = useLibraryStore(state => state.tracks);
+  const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
   
   const currentTrack = tracks.find(t => t.id === currentTrackId);
   const visualizerBarsRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -313,6 +315,7 @@ export function Equalizer() {
          <HexAction icon={<Disc className="w-8 h-8"/>} label="BASS BOOST" color="border-neo-magenta text-neo-magenta" onClick={() => setPreset('Club (Bass)')} />
          <HexAction icon={<Move className="w-8 h-8"/>} label="SYNTH" color="border-neo-lime text-neo-lime" onClick={() => setPreset('Retro Synth')} />
          <HexAction icon={<Save className="w-8 h-8"/>} label="SAVE" color="border-neo-yellow text-neo-yellow" onClick={saveCustomPreset} />
+         <HexAction icon={<Radio className="w-8 h-8"/>} label="OPEN ANALYZER" color="border-neo-cyan text-neo-cyan" onClick={() => setAnalyzerOpen(true)} />
       </div>
 
       <div className="mt-8 mb-2 font-mono text-[9px] uppercase tracking-widest text-[#00f0ff] opacity-50 block md:hidden">

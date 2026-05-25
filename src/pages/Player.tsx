@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { NeoImageButton } from '../components/ui/NeoImageButton';
+import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
 
 export function Player() {
@@ -20,6 +21,7 @@ export function Player() {
   } = usePlayerStore();
   const tracks = useLibraryStore(state => state.tracks);
   const navigate = useNavigate();
+  const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
 
   const track = tracks.find(t => t.id === currentTrackId);
   const duration = audioDuration || track?.duration || 0;
@@ -89,6 +91,14 @@ export function Player() {
             label="Open settings"
             size="md"
             onClick={() => navigate('/settings')}
+          />
+          <NeoImageButton
+            src={NEO_AUDIO_BUTTONS.playlist}
+            alt="Track Lab"
+            label="Open Track Lab"
+            size="md"
+            disabled={!currentTrackId}
+            onClick={() => currentTrackId && navigate(`/track/${currentTrackId}`)}
           />
         </div>
       </div>
@@ -340,6 +350,21 @@ export function Player() {
              label="Open settings"
              size="sm"
              onClick={() => navigate('/settings')}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.equalizer}
+             alt="Analyzer"
+             label="Open Live Analyzer"
+             size="sm"
+             onClick={() => setAnalyzerOpen(true)}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.playlist}
+             alt="Track Lab"
+             label="Open Track Lab"
+             size="sm"
+             disabled={!currentTrackId}
+             onClick={() => currentTrackId && navigate(`/track/${currentTrackId}`)}
            />
          </div>
       </div>
