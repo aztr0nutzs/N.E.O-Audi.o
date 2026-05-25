@@ -117,3 +117,9 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Edit track title, artist, album, genre, mood, tags, notes, favorite state, explicit flag, and energy level.
 - Mood Packs are powered by mood/genre/tag metadata.
 - Metadata persists through `PATCH /api/tracks/:id`.
+
+## Download Job Diagnostics
+
+- Every downloader job now includes rich diagnostics: phase, progress, status, speed/ETA (when available), output metadata, and retry/cancel/remove actions.
+- Failed downloads can be inspected in a neon terminal-style diagnostics drawer that exposes error code/message and recent log lines.
+- Job logs are capped to prevent unbounded memory/storage growth.

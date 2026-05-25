@@ -54,7 +54,8 @@ type EngineErrorCode =
    | 'download_failed'
    | 'conversion_failed'
    | 'verification_failed'
-   | 'cancelled';
+   | 'cancelled'
+   | 'server_restarted';
 
 class EngineError extends Error {
    code: EngineErrorCode;
@@ -452,6 +453,7 @@ interface DownloadJob {
   phase: string;
   format: SupportedFormat;
   bitrate: number;
+  sourceHostname?: string;
   error?: string;
   errorCode?: string;
   logs?: string[];
@@ -459,6 +461,7 @@ interface DownloadJob {
   outputFilename?: string;
   actualBitrate?: number;
   actualDuration?: number;
+  fileSize?: number;
   speed?: string;
   eta?: string;
   createdAt: number;
@@ -563,7 +566,7 @@ for (const job of downloadJobs) {
         job.status = 'failed';
         job.phase = 'Failed';
         job.error = 'Server was restarted before job could complete';
-        job.errorCode = 'ERR_SERVER_RESTARTED';
+        job.errorCode = 'server_restarted';
         job.updatedAt = Date.now();
     }
 }
@@ -656,16 +659,20 @@ const runDownloadEngine = async (jobId: string) => {
     job.eta = undefined;
     saveJobsDb();
 
-    const log = (msg: string) => {
-        if (job.logs) job.logs.push(`[${new Date().toISOString()}] ${msg}`);
+    const pushLog = (message: string) => {
+        if (!job.logs) job.logs = [];
+        job.logs.push(`[${new Date().toISOString()}] ${message}`);
+        if (job.logs.length > 100) job.logs = job.logs.slice(-100);
     };
+    const log = (msg: string) => pushLog(msg);
 
     const wasCancelled = () => {
        const j = downloadJobs.find(x => x.id === jobId);
        return j && j.status === 'cancelled';
     };
 
-    log(`Started processing: ${job.sourceUrl}`);
+    log('start requested');
+    log(`queued -> processing ${job.sourceUrl}`);
 
     let actualFile = '';
     let outputBase = '';
@@ -732,6 +739,7 @@ const runDownloadEngine = async (jobId: string) => {
         // ---- Phase 2: downloading (10-75) ----
         job.status = 'downloading';
         job.phase = 'Downloading...';
+        log('downloading');
         job.progress = 10;
         job.updatedAt = Date.now();
         saveJobsDb();
@@ -779,6 +787,7 @@ const runDownloadEngine = async (jobId: string) => {
             if ((output.includes('[ExtractAudio]') || output.includes('Destination:')) && (job.status as string) !== 'converting') {
                 job.status = 'converting';
                 job.phase = 'Converting format (ffmpeg)...';
+                log('converting');
                 job.progress = Math.max(job.progress, 78);
                 job.speed = undefined;
                 job.eta = undefined;
@@ -883,6 +892,7 @@ const runDownloadEngine = async (jobId: string) => {
         // ---- Phase 4: indexing/verifying (95-99 until Track is created) ----
         job.status = 'indexing';
         job.phase = 'Verifying and finalizing track...';
+        log('verifying');
         job.progress = 96;
         job.updatedAt = Date.now();
         saveJobsDb();
@@ -937,6 +947,7 @@ const runDownloadEngine = async (jobId: string) => {
         job.outputFilename = actualFile;
         job.actualDuration = actualDuration;
         job.actualBitrate = actualBitrate || job.bitrate;
+        job.fileSize = stat.size;
 
         // ---- Phase 5: create Track only after every check passes ----
         const newTrack: Track = {
@@ -967,7 +978,8 @@ const runDownloadEngine = async (jobId: string) => {
         job.updatedAt = Date.now();
         job.speed = undefined;
         job.eta = undefined;
-        log('Job completed successfully');
+        log('indexed');
+        log('complete');
         saveJobsDb();
 
     } catch (err: any) {
@@ -986,7 +998,7 @@ const runDownloadEngine = async (jobId: string) => {
                 j.errorCode = 'cancelled';
                 j.error = 'Cancelled';
                 j.updatedAt = Date.now();
-                log('Job ended due to cancellation');
+                log('cancelled');
                 saveJobsDb();
             }
         } else {
@@ -995,7 +1007,7 @@ const runDownloadEngine = async (jobId: string) => {
             job.error = message;
             job.errorCode = code;
             job.updatedAt = Date.now();
-            if (job.logs) job.logs.push(`[${new Date().toISOString()}] [ERROR ${code}] ${message}`);
+            log(`failed [${code}] ${message}`);
             saveJobsDb();
         }
 
@@ -1058,6 +1070,8 @@ app.post("/api/download-jobs", (req, res) => {
        phase: 'Queued',
        format,
        bitrate,
+       sourceHostname: parsedUrl.hostname,
+       logs: [`[${new Date().toISOString()}] queued`],
        createdAt: Date.now(),
        updatedAt: Date.now()
    };
@@ -1142,6 +1156,7 @@ app.post("/api/download-jobs/:id/retry", (req, res) => {
    job.error = undefined;
    job.errorCode = undefined;
    job.logs = [];
+   job.logs = [`[${new Date().toISOString()}] retry`];
    job.actualDuration = undefined;
    job.actualBitrate = undefined;
    job.outputFilename = undefined;
@@ -1169,7 +1184,10 @@ app.post("/api/download-jobs/:id/cancel", (req, res) => {
    job.phase = 'Cancelled';
    job.errorCode = 'cancelled';
    job.updatedAt = Date.now();
-   if (job.logs) job.logs.push(`[${new Date().toISOString()}] Job cancelled by user.`);
+   if (job.logs) {
+      job.logs.push(`[${new Date().toISOString()}] cancelled`);
+      if (job.logs.length > 100) job.logs = job.logs.slice(-100);
+   }
 
    killJobProcess(job.id);
    cleanupJobFiles(job.id);
