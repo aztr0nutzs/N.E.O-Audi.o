@@ -66,7 +66,6 @@ export function TrackDetail() {
         <p className="font-mono text-xs text-gray-400 mt-2">Signal id: {id}</p>
         <Link to="/library" className="inline-block mt-6 px-4 py-2 border border-neo-cyan text-neo-cyan hover:bg-neo-cyan/10">Return to Library</Link>
       </div>
-      {track && <MetadataLab track={track} open={metadataOpen} onClose={() => setMetadataOpen(false)} onSave={(patch) => updateTrack(track.id, patch)} />}
   </div>;
   }
 
