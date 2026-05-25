@@ -7,6 +7,7 @@ import { formatDuration } from '../lib/utils';
 import { NeoImageButton } from '../components/ui/NeoImageButton';
 import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
 import toast from 'react-hot-toast';
+import { MetadataLab } from '../components/library/MetadataLab';
 
 const hashBars = (seed: string, count = 48) => {
   let hash = 0;
@@ -24,6 +25,7 @@ export function TrackDetail() {
   const { currentTrackId, isPlaying, playTrack, pause, resume, addToQueue, analyserNode } = usePlayerStore();
   const track = tracks.find((t) => t.id === id);
   const [isEditing, setIsEditing] = useState(false);
+  const [metadataOpen, setMetadataOpen] = useState(false);
   const [form, setForm] = useState({ title: '', artist: '', album: '', genre: '', favorite: false });
   const [bars, setBars] = useState<number[]>([]);
 
@@ -64,7 +66,7 @@ export function TrackDetail() {
         <p className="font-mono text-xs text-gray-400 mt-2">Signal id: {id}</p>
         <Link to="/library" className="inline-block mt-6 px-4 py-2 border border-neo-cyan text-neo-cyan hover:bg-neo-cyan/10">Return to Library</Link>
       </div>
-    </div>;
+  </div>;
   }
 
   if (!track) return null;
@@ -129,7 +131,7 @@ export function TrackDetail() {
           <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Queue" label="Add to Queue" size="sm" onClick={() => addToQueue(track.id)} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.eq} alt="Player" label="Open Player" size="sm" onClick={() => navigate('/player')} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.equalizer} alt="Equalizer" label="Open Equalizer" size="sm" onClick={() => navigate('/equalizer')} />
-          <NeoImageButton src={NEO_AUDIO_BUTTONS.settings} alt="Edit" label="Edit Metadata" size="sm" onClick={() => setIsEditing((v) => !v)} />
+          <NeoImageButton src={NEO_AUDIO_BUTTONS.settings} alt="Edit" label="Edit Metadata" size="sm" onClick={() => setMetadataOpen(true)} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.stop} alt="Delete" label="Delete Track" size="sm" onClick={async () => { await removeTrack(track.id); navigate('/library'); }} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.previous} alt="Back" label="Back to Library" size="sm" onClick={() => navigate('/library')} />
         </div>
@@ -140,5 +142,6 @@ export function TrackDetail() {
         </div>}
       </div>
     </div>
+    {track && <MetadataLab track={track} open={metadataOpen} onClose={() => setMetadataOpen(false)} onSave={(patch) => updateTrack(track.id, patch)} />}
   </div>;
 }

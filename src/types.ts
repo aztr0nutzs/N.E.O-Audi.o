@@ -28,6 +28,12 @@ export interface Track {
   createdAt: number;
   updatedAt: number;
   favorite: boolean;
+  mood?: string;
+  tags?: string[];
+  notes?: string;
+  energyLevel?: 1 | 2 | 3 | 4 | 5;
+  explicit?: boolean;
+  coverArtUrl?: string;
 }
 
 export interface Playlist {

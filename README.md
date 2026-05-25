@@ -110,3 +110,10 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Analyzer overlay provides Spectrum, Waveform, Stereo estimate, and Reactor modes.
 - When live playback is running, visuals read from the Web Audio `AnalyserNode` in real time.
 - When no live signal exists, analyzer shows truthful standby visuals/states (no fake telemetry).
+
+
+## Metadata Lab
+
+- Edit track title, artist, album, genre, mood, tags, notes, favorite state, explicit flag, and energy level.
+- Mood Packs are powered by mood/genre/tag metadata.
+- Metadata persists through `PATCH /api/tracks/:id`.

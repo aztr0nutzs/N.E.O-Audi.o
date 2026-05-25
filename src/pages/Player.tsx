@@ -11,6 +11,7 @@ import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { NeoImageButton } from '../components/ui/NeoImageButton';
 import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
+import { MetadataLab } from '../components/library/MetadataLab';
 
 export function Player() {
   const {
@@ -27,6 +28,7 @@ export function Player() {
   const duration = audioDuration || track?.duration || 0;
   const visualizerBarsRef = useRef<(HTMLDivElement | null)[]>([]);
   const noTrack = !track;
+  const [metadataOpen, setMetadataOpen] = React.useState(false);
 
   useEffect(() => {
      if (!analyserNode || !isPlaying) return;
@@ -358,6 +360,7 @@ export function Player() {
              size="sm"
              onClick={() => setAnalyzerOpen(true)}
            />
+           <NeoImageButton src={NEO_AUDIO_BUTTONS.settings} alt="Metadata" label="Open Metadata Lab" size="sm" disabled={!currentTrackId} onClick={() => setMetadataOpen(true)} />
            <NeoImageButton
              src={NEO_AUDIO_BUTTONS.playlist}
              alt="Track Lab"

@@ -64,10 +64,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     const track = get().tracks.find(t => t.id === id);
     if (!track) return;
     const updated = { ...track, ...updates, updatedAt: Date.now() };
-    await storage.saveTrack(updated);
-    set((state) => ({
-      tracks: state.tracks.map(t => t.id === id ? updated : t)
-    }));
+    try {
+      const saved = await storage.saveTrack(updated);
+      set((state) => ({ tracks: state.tracks.map(t => t.id === id ? (saved || updated) : t) }));
+    } catch (e) {
+      throw e;
+    }
   },
 
   addPlaylist: async (playlist) => {

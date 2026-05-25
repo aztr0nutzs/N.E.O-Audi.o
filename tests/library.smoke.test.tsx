@@ -20,5 +20,6 @@ describe('Library smoke', () => {
     expect(screen.getByText(/playlists/i)).toBeInTheDocument();
     fireEvent.click(screen.getByText(/downloaded/i));
     expect(screen.getByRole('button', { name: /track details/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /metadata lab/i })).toBeInTheDocument();
   });
 });

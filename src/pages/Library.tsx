@@ -8,6 +8,7 @@ import { formatDuration } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { Track, LOSSLESS_FORMATS } from '../types';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
+import { MetadataLab } from '../components/library/MetadataLab';
 
 const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title: string, subtitle: string, icon: React.ReactNode, color: string, className?: string, onClick?: () => void }) => {
    const colorMap: any = {
@@ -48,6 +49,7 @@ export function Library() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [editingTrack, setEditingTrack] = useState<string | null>(null);
+  const [labTrackId, setLabTrackId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editArtist, setEditArtist] = useState('');
   const [editGenre, setEditGenre] = useState('');
@@ -401,7 +403,7 @@ export function Library() {
                                    <button onClick={(e) => { e.stopPropagation(); setAddingToPlaylistTrack(track.id === addingToPlaylistTrack ? null : track.id); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-magenta transition-colors">
                                       <Plus className="w-4 h-4 text-gray-400 group-hover:text-neo-magenta hover:text-neo-magenta" />
                                    </button>
-                                   <button onClick={(e) => { e.stopPropagation(); handleEdit(track); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-yellow transition-colors">
+                                   <button onClick={(e) => { e.stopPropagation(); setLabTrackId(track.id); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-yellow transition-colors" aria-label="Metadata lab">
                                       <EditIcon className="w-4 h-4 text-gray-400 group-hover:text-neo-yellow hover:text-neo-yellow" />
                                    </button>
                                    {view === 'playlist_tracks' && selectedId ? (
@@ -486,6 +488,7 @@ export function Library() {
             </div>
          </div>
       </div>
+      {labTrackId && (() => { const lt = tracks.find(t => t.id === labTrackId); return lt ? <MetadataLab track={lt} open={!!labTrackId} onClose={() => setLabTrackId(null)} onSave={(patch) => useLibraryStore.getState().updateTrack(lt.id, patch)} /> : null; })()}
     </div>
   );
 }

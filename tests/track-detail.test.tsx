@@ -28,5 +28,6 @@ describe('TrackDetail', () => {
     expect(screen.getByRole('button', { name: /open player/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open equalizer/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /back to library/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /edit metadata/i })).toBeInTheDocument();
   });
 });
