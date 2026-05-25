@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X } from 'lucide-react';
@@ -34,6 +34,7 @@ const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title
 
 export function Library() {
   const location = useLocation();
+  const navigate = useNavigate();
   const tracks = useLibraryStore(state => state.tracks);
   const playlists = useLibraryStore(state => state.playlists);
   const removeTrack = useLibraryStore(state => state.removeTrack);
@@ -383,7 +384,7 @@ export function Library() {
                                    <Music className="w-6 h-6 drop-shadow-[0_0_5px_currentColor]" />
                                 </div>
                                 <div className="flex-1">
-                                   <h3 className="text-sm font-bold tracking-widest text-white italic truncate uppercase drop-shadow-[0_0_5px_currentColor] max-w-[200px] sm:max-w-sm">
+                                   <h3 onClick={() => navigate(`/track/${track.id}`)} className="text-sm font-bold tracking-widest text-white italic truncate uppercase drop-shadow-[0_0_5px_currentColor] max-w-[200px] sm:max-w-sm cursor-pointer hover:text-neo-cyan">
                                       {track.title}
                                    </h3>
                                    <p className="text-[10px] font-mono tracking-widest text-gray-400 mt-1 uppercase whitespace-nowrap">
@@ -393,6 +394,9 @@ export function Library() {
                                 <div className="flex gap-2 shrink-0">
                                    <button onClick={() => playTrack(track.id, displayedTracks.map(t => t.id))} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-cyan transition-colors">
                                       <Play className={cn("w-4 h-4", isCurrent && isPlaying ? "text-neo-lime" : "text-white")} />
+                                   </button>
+                                   <button onClick={(e) => { e.stopPropagation(); navigate(`/track/${track.id}`); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-cyan transition-colors" aria-label="Track details">
+                                      <Folder className="w-4 h-4 text-gray-400 group-hover:text-neo-cyan hover:text-neo-cyan" />
                                    </button>
                                    <button onClick={(e) => { e.stopPropagation(); setAddingToPlaylistTrack(track.id === addingToPlaylistTrack ? null : track.id); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-magenta transition-colors">
                                       <Plus className="w-4 h-4 text-gray-400 group-hover:text-neo-magenta hover:text-neo-magenta" />

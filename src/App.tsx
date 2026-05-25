@@ -12,6 +12,7 @@ import { Library } from './pages/Library';
 import { Player } from './pages/Player';
 import { Equalizer } from './pages/Equalizer';
 import { Settings } from './pages/Settings';
+import { TrackDetail } from './pages/TrackDetail';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="player" element={<Player />} />
           <Route path="equalizer" element={<Equalizer />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="track/:id" element={<TrackDetail />} />
         </Route>
       </Routes>
     </Router>
