@@ -4,7 +4,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../src/store/useDownloadStore', () => ({
-  useDownloadStore: () => ({ jobs: [], loadJobs: vi.fn(), addJob: vi.fn(), startJob: vi.fn(), retryJob: vi.fn(), removeJob: vi.fn(), cancelJob: vi.fn(), beginPolling: vi.fn(), endPolling: vi.fn() })
+  useDownloadStore: () => ({ jobs: [{ id: 'j1', sourceUrl: 'https://example.com/a', status: 'queued', progress: 0, phase: 'Queued', format: 'mp3', bitrate: 320, createdAt: Date.now(), updatedAt: Date.now(), logs: [] }], loadJobs: vi.fn(), addJob: vi.fn(), startJob: vi.fn(), retryJob: vi.fn(), removeJob: vi.fn(), cancelJob: vi.fn(), beginPolling: vi.fn(), endPolling: vi.fn(), loadJobLogs: vi.fn() })
 }));
 vi.mock('../src/store/usePlayerStore', () => ({ usePlayerStore: () => vi.fn() }));
 vi.mock('../src/store/useAppStore', () => ({ useAppStore: (sel: any) => sel({ settings: { defaultFormat: 'mp3', defaultBitrate: 320 } }) }));
@@ -23,5 +23,6 @@ describe('Downloader smoke', () => {
     expect(screen.getByRole('button', { name: 'm4a' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '128' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '320' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /diagnostics/i })).toBeInTheDocument();
   });
 });

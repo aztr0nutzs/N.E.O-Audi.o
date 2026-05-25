@@ -52,11 +52,13 @@ export interface DownloadJob {
   status: JobStatus;
   progress: number;
   phase: string;
+  sourceHostname?: string;
   error?: string;
   errorCode?: string;
   logs?: string[];
   startedAt?: number;
   outputFilename?: string;
+  fileSize?: number;
   actualBitrate?: number;
   actualDuration?: number;
   speed?: string;

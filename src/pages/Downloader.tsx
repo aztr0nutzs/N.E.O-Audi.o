@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDownloadStore } from '../store/useDownloadStore';
-import { AlertCircle, Bot, ChevronDown, ChevronRight, DownloadCloud, Play, Terminal } from 'lucide-react';
+import { AlertCircle, Bot, DownloadCloud, Play } from 'lucide-react';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -9,6 +9,7 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { SUPPORTED_FORMATS, type DownloadJob } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
+import { DownloadJobDiagnosticsDrawer } from '../components/downloader/DownloadJobDiagnosticsDrawer';
 
 export function Downloader() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export function Downloader() {
   
   const { jobs, loadJobs, addJob, startJob, retryJob, removeJob, cancelJob, beginPolling, endPolling } = useDownloadStore();
   const playTrack = usePlayerStore(state => state.playTrack);
-  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
+  const [expandedDiagnostics, setExpandedDiagnostics] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadJobs();
@@ -67,8 +68,8 @@ export function Downloader() {
     setUrl('');
   };
 
-  const toggleLogs = (id: string) => {
-    setExpandedLogs(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleDiagnostics = (id: string) => {
+    setExpandedDiagnostics(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handlePlay = async (job: DownloadJob) => {
@@ -281,24 +282,6 @@ export function Downloader() {
                       </div>
                     )}
 
-                    {(job.status === 'failed' || job.status === 'cancelled') && job.logs && job.logs.length > 0 && (
-                      <div className="mt-1">
-                        <button
-                          onClick={() => toggleLogs(job.id)}
-                          className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-neo-cyan/80 hover:text-neo-cyan transition-colors"
-                        >
-                          {expandedLogs[job.id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                          <Terminal className="w-3 h-3" />
-                          <span>{expandedLogs[job.id] ? 'HIDE LOGS' : 'SHOW LOGS'}</span>
-                          <span className="text-gray-500 normal-case">({job.logs.length})</span>
-                        </button>
-                        {expandedLogs[job.id] && (
-                          <div className="mt-1 text-[9px] font-mono text-gray-400 bg-black/80 border border-neo-cyan/20 rounded p-1.5 max-h-40 overflow-y-auto leading-snug whitespace-pre-wrap break-words">
-                            {job.logs.slice(-20).map((l, i) => <div key={i}>{l}</div>)}
-                          </div>
-                        )}
-                      </div>
-                    )}
                     
                     {/* Actions */}
                     <div className="flex flex-wrap justify-end gap-1.5 mt-1 pt-1 border-t border-gray-800/50">
@@ -335,6 +318,16 @@ export function Downloader() {
                          </>
                        )}
                     </div>
+                    <DownloadJobDiagnosticsDrawer
+                      job={job}
+                      expanded={Boolean(expandedDiagnostics[job.id])}
+                      onToggle={() => toggleDiagnostics(job.id)}
+                      onRetry={job.status === 'failed' || job.status === 'cancelled' ? () => retryJob(job.id) : undefined}
+                      onCancel={job.status !== 'complete' && job.status !== 'failed' && job.status !== 'cancelled' ? () => cancelJob(job.id) : undefined}
+                      onRemove={() => removeJob(job.id)}
+                      onPlay={job.status === 'complete' ? () => handlePlay(job) : undefined}
+                      onOpenLibrary={job.status === 'complete' ? () => navigate(`/library?trackId=${encodeURIComponent(job.resultTrackId || '')}&q=${encodeURIComponent(job.metadata?.title || '')}`) : undefined}
+                    />
                   </div>
                 ))}
              </div>
