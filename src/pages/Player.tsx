@@ -90,6 +90,14 @@ export function Player() {
             size="md"
             onClick={() => navigate('/settings')}
           />
+          <NeoImageButton
+            src={NEO_AUDIO_BUTTONS.playlist}
+            alt="Track Lab"
+            label="Open Track Lab"
+            size="md"
+            disabled={!currentTrackId}
+            onClick={() => currentTrackId && navigate(`/track/${currentTrackId}`)}
+          />
         </div>
       </div>
     );
@@ -340,6 +348,14 @@ export function Player() {
              label="Open settings"
              size="sm"
              onClick={() => navigate('/settings')}
+           />
+           <NeoImageButton
+             src={NEO_AUDIO_BUTTONS.playlist}
+             alt="Track Lab"
+             label="Open Track Lab"
+             size="sm"
+             disabled={!currentTrackId}
+             onClick={() => currentTrackId && navigate(`/track/${currentTrackId}`)}
            />
          </div>
       </div>

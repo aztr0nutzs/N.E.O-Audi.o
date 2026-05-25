@@ -97,5 +97,6 @@ describe('Player smoke', () => {
     expect(screen.getByRole('button', { name: /open equalizer/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open downloader/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open track lab/i })).toBeInTheDocument();
   });
 });
