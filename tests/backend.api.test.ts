@@ -70,3 +70,11 @@ describe('Download job operations on missing job ids', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('PATCH /api/tracks/:id metadata validation', () => {
+  it('missing track returns track_not_found', async () => {
+    const res = await request(app).patch('/api/tracks/missing-track').send({ title: 'X' });
+    expect(res.status).toBe(404);
+    expect(res.body.errorCode).toBe('track_not_found');
+  });
+});
