@@ -372,6 +372,12 @@ export function Player() {
          </div>
       </div>
 
+      {metadataOpen && track && (
+        <MetadataLab
+          track={track}
+          onClose={() => setMetadataOpen(false)}
+        />
+      )}
     </div>
   );
 }
