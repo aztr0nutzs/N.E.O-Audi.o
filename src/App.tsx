@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
 import { Downloader } from './pages/Downloader';
@@ -19,7 +19,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<AppShell />}>
-          <Route index element={<Navigate to="/player" replace />} />
+          <Route index element={<Dashboard />} />
           <Route path="download" element={<Downloader />} />
           <Route path="upload" element={<Uploader />} />
           <Route path="library" element={<Library />} />
