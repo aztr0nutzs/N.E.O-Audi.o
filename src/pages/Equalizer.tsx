@@ -1,18 +1,60 @@
 import { useState, useRef, useEffect } from 'react';
+import type React from 'react';
 import { motion } from 'motion/react';
-import { Settings, Menu, Activity, Sliders, Disc, Radio, Save, Cloud, Move } from 'lucide-react';
+import { Settings, Menu, Activity, Sliders, Disc, Radio, Save, Move, Trash2, Edit3, GitCompareArrows, RotateCcw, ArrowLeftRight } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
 import { usePlayerStore } from '../store/usePlayerStore';
-import { useEqualizerStore, BANDS } from '../store/useEqualizerStore';
+import { useEqualizerStore, BANDS, EqPresetCategory } from '../store/useEqualizerStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { useAnalyzerStore } from '../store/useAnalyzerStore';
+import { EqCurvePreview } from '../components/equalizer/EqCurvePreview';
+
+const PRESET_CATEGORIES: Array<{ id: EqPresetCategory; label: string }> = [
+  { id: 'core', label: 'Core' },
+  { id: 'bass', label: 'Bass' },
+  { id: 'vocals', label: 'Vocals' },
+  { id: 'night', label: 'Night' },
+  { id: 'retro', label: 'Retro' },
+  { id: 'device', label: 'Device' },
+  { id: 'custom', label: 'Custom' },
+];
 
 export function Equalizer() {
-  const { isOn, setIsOn, bandValues, setBandValue, setPreset, saveCustomPreset, activePreset, spatial, setSpatial } = useEqualizerStore();
+  const {
+    isOn,
+    setIsOn,
+    bandValues,
+    setBandValue,
+    setPreset,
+    saveCustomPreset,
+    renameCustomPreset,
+    deleteCustomPreset,
+    resetToFlat,
+    activePreset,
+    activePresetId,
+    spatial,
+    setSpatial,
+    presets,
+    customPresets,
+    compareA,
+    compareB,
+    activeCompareSlot,
+    setCompareSlot,
+    captureCompareA,
+    captureCompareB,
+    applyCompareA,
+    applyCompareB,
+    swapCompare,
+    clearCompare,
+  } = useEqualizerStore();
   const { isPlaying, currentTrackId, progress, analyserNode } = usePlayerStore();
   const tracks = useLibraryStore(state => state.tracks);
   const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
+  const [selectedCategory, setSelectedCategory] = useState<EqPresetCategory>('core');
+  const [customPresetName, setCustomPresetName] = useState('My Signal Curve');
+  const [renamingPresetId, setRenamingPresetId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   
   const currentTrack = tracks.find(t => t.id === currentTrackId);
   const visualizerBarsRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -73,6 +115,19 @@ export function Equalizer() {
   
   const leftColors = ['neo-cyan', 'neo-magenta', 'neo-yellow', 'neo-lime', 'neo-orange'];
   const rightColors = ['neo-cyan', 'neo-magenta', 'neo-yellow', 'neo-lime', 'neo-orange'];
+  const visiblePresets = [...presets, ...customPresets].filter(preset => preset.category === selectedCategory);
+
+  const startRename = (id: string, name: string) => {
+    setRenamingPresetId(id);
+    setRenameValue(name);
+  };
+
+  const commitRename = () => {
+    if (!renamingPresetId) return;
+    renameCustomPreset(renamingPresetId, renameValue);
+    setRenamingPresetId(null);
+    setRenameValue('');
+  };
 
   return (
     <div className="max-w-6xl mx-auto min-h-[calc(100vh-100px)] pb-32 flex flex-col items-center p-2 sm:p-4 font-sans overflow-x-hidden pt-8">
@@ -107,6 +162,180 @@ export function Equalizer() {
             <Settings className="w-6 h-6" />
          </button>
       </header>
+
+      {/* Preset Vault */}
+      <section className="w-full armored-frame bg-[#0a0a0f] border border-neo-cyan/30 p-4 md:p-5 mb-6 shadow-[0_0_20px_rgba(0,240,255,0.12)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-widest text-neo-cyan drop-shadow-[0_0_10px_currentColor]">
+              EQ PRESET VAULT
+            </h2>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-neo-magenta">
+              SIGNAL CURVES / A-B TUNING
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={customPresetName}
+              onChange={(event) => setCustomPresetName(event.target.value)}
+              aria-label="Custom preset name"
+              className="min-w-0 border border-gray-800 bg-black px-3 py-2 font-mono text-xs uppercase tracking-widest text-white outline-none focus:border-neo-yellow"
+            />
+            <button
+              type="button"
+              onClick={() => saveCustomPreset(customPresetName)}
+              className="flex items-center justify-center gap-2 border border-neo-yellow/60 bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-neo-yellow hover:bg-neo-yellow/10"
+            >
+              <Save className="w-4 h-4" />
+              Save Current
+            </button>
+            <button
+              type="button"
+              onClick={resetToFlat}
+              className="flex items-center justify-center gap-2 border border-neo-cyan/60 bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-neo-cyan hover:bg-neo-cyan/10"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset Flat
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
+          {PRESET_CATEGORIES.map(category => (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => setSelectedCategory(category.id)}
+              className={cn(
+                'shrink-0 border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors',
+                selectedCategory === category.id
+                  ? 'border-neo-cyan bg-neo-cyan/10 text-neo-cyan shadow-[0_0_12px_rgba(0,240,255,0.28)]'
+                  : 'border-gray-800 bg-black text-gray-400 hover:border-neo-magenta hover:text-neo-magenta',
+              )}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {visiblePresets.length ? visiblePresets.map(preset => {
+            const isActive = activePresetId === preset.id || activePreset === preset.name;
+            const isRenaming = renamingPresetId === preset.id;
+            return (
+              <article
+                key={preset.id}
+                className={cn(
+                  'cyber-panel border p-3 transition-colors',
+                  isActive ? 'border-neo-cyan shadow-[0_0_16px_rgba(0,240,255,0.25)]' : 'border-gray-800 hover:border-neo-magenta/60',
+                )}
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {isRenaming ? (
+                      <input
+                        value={renameValue}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onBlur={commitRename}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') commitRename();
+                          if (event.key === 'Escape') setRenamingPresetId(null);
+                        }}
+                        autoFocus
+                        aria-label="Rename preset"
+                        className="w-full border border-neo-yellow bg-black px-2 py-1 text-xs uppercase tracking-widest text-white outline-none"
+                      />
+                    ) : (
+                      <h3 className="truncate text-sm font-black italic uppercase tracking-widest text-white">{preset.name}</h3>
+                    )}
+                    <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-gray-500">{preset.category}</p>
+                  </div>
+                  <span className={cn('shrink-0 border px-2 py-1 font-mono text-[8px] uppercase tracking-widest', preset.isBuiltIn ? 'border-neo-cyan/40 text-neo-cyan' : 'border-neo-yellow/40 text-neo-yellow')}>
+                    {preset.isBuiltIn ? 'Built-In' : 'Custom'}
+                  </span>
+                </div>
+                <EqCurvePreview bandValues={preset.bandValues} active={isActive} label={preset.name} />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreset(preset.id)}
+                    className="flex-1 border border-neo-cyan/50 bg-black px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-neo-cyan hover:bg-neo-cyan/10"
+                  >
+                    Apply
+                  </button>
+                  {!preset.isBuiltIn && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label={`Rename ${preset.name}`}
+                        onClick={() => startRename(preset.id, preset.name)}
+                        className="border border-neo-yellow/50 bg-black p-2 text-neo-yellow hover:bg-neo-yellow/10"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${preset.name}`}
+                        onClick={() => deleteCustomPreset(preset.id)}
+                        className="border border-neo-red/50 bg-black p-2 text-neo-red hover:bg-neo-red/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          }) : (
+            <div className="col-span-full border border-dashed border-gray-800 bg-black/40 p-6 text-center font-mono text-xs uppercase tracking-widest text-gray-500">
+              No custom curves saved.
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* A/B Compare */}
+      <section className="w-full cyber-panel border-neo-magenta/30 p-4 mb-8">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-black italic uppercase tracking-widest text-neo-magenta">
+              <GitCompareArrows className="w-5 h-5" />
+              A/B COMPARE
+            </h2>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gray-500">Capture, tweak, swap, replay.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['A', 'B'] as const).map(slot => (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => setCompareSlot(slot)}
+                className={cn(
+                  'border px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest',
+                  activeCompareSlot === slot ? 'border-neo-lime bg-neo-lime/10 text-neo-lime shadow-[0_0_12px_rgba(57,255,20,0.28)]' : 'border-gray-800 text-gray-400 hover:border-neo-lime hover:text-neo-lime',
+                )}
+              >
+                Slot {slot}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <CompareSlot title="A" snapshot={compareA} active={activeCompareSlot === 'A'} />
+          <CompareSlot title="B" snapshot={compareB} active={activeCompareSlot === 'B'} />
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          <CompareButton label="Capture A" onClick={captureCompareA} />
+          <CompareButton label="Capture B" onClick={captureCompareB} />
+          <CompareButton label="Apply A" onClick={applyCompareA} disabled={!compareA} />
+          <CompareButton label="Apply B" onClick={applyCompareB} disabled={!compareB} />
+          <CompareButton label="Swap A/B" onClick={swapCompare} icon={<ArrowLeftRight className="w-4 h-4" />} />
+          <CompareButton label="Clear A/B" onClick={clearCompare} />
+          <CompareButton label="Open Analyzer" onClick={() => setAnalyzerOpen(true)} />
+        </div>
+      </section>
 
       {/* Main Layout containing Sliders and Reactor */}
       <div className="w-full flex flex-col lg:flex-row justify-center items-stretch gap-4 md:gap-8 z-10 relative mt-4">
@@ -311,10 +540,10 @@ export function Equalizer() {
       {/* Hex Action Buttons */}
       <div className="w-full max-w-5xl mt-6 flex flex-wrap justify-center gap-2 md:gap-6 z-20">
          <HexAction icon={<Activity className="w-8 h-8"/>} label={isOn ? 'BYPASS EQ' : 'ENABLE EQ'} color="border-neo-orange text-neo-orange" onClick={() => setIsOn(!isOn)} />
-         <HexAction icon={<Sliders className="w-8 h-8"/>} label="RESET" color="border-neo-cyan text-neo-cyan" onClick={() => setPreset('Flat')} />
+         <HexAction icon={<Sliders className="w-8 h-8"/>} label="RESET" color="border-neo-cyan text-neo-cyan" onClick={resetToFlat} />
          <HexAction icon={<Disc className="w-8 h-8"/>} label="BASS BOOST" color="border-neo-magenta text-neo-magenta" onClick={() => setPreset('Club (Bass)')} />
          <HexAction icon={<Move className="w-8 h-8"/>} label="SYNTH" color="border-neo-lime text-neo-lime" onClick={() => setPreset('Retro Synth')} />
-         <HexAction icon={<Save className="w-8 h-8"/>} label="SAVE" color="border-neo-yellow text-neo-yellow" onClick={saveCustomPreset} />
+         <HexAction icon={<Save className="w-8 h-8"/>} label="SAVE" color="border-neo-yellow text-neo-yellow" onClick={() => saveCustomPreset(customPresetName)} />
          <HexAction icon={<Radio className="w-8 h-8"/>} label="OPEN ANALYZER" color="border-neo-cyan text-neo-cyan" onClick={() => setAnalyzerOpen(true)} />
       </div>
 
@@ -322,6 +551,37 @@ export function Equalizer() {
          N.E.O. AUDIO REACTOR v2.6
       </div>
     </div>
+  );
+}
+
+function CompareSlot({ title, snapshot, active }: { title: 'A' | 'B'; snapshot: { name: string; bandValues: number[]; spatial: number } | null; active: boolean }) {
+  return (
+    <div className={cn('border bg-black/40 p-3', active ? 'border-neo-lime shadow-[0_0_14px_rgba(57,255,20,0.24)]' : 'border-gray-800')}>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-white">Slot {title}</h3>
+        <span className={cn('font-mono text-[9px] uppercase tracking-widest', snapshot ? 'text-neo-cyan' : 'text-gray-500')}>
+          {snapshot ? snapshot.name : 'Empty'}
+        </span>
+      </div>
+      <EqCurvePreview bandValues={snapshot?.bandValues || Array(10).fill(0)} active={active} label={`Slot ${title}`} />
+      <div className="mt-2 font-mono text-[10px] uppercase tracking-widest text-gray-500">
+        Spatial: {snapshot ? (snapshot.spatial === 0 ? 'CENTER' : snapshot.spatial < 0 ? `${Math.abs(Math.round(snapshot.spatial * 100))}% LEFT` : `${Math.abs(Math.round(snapshot.spatial * 100))}% RIGHT`) : '---'}
+      </div>
+    </div>
+  );
+}
+
+function CompareButton({ label, onClick, disabled, icon }: { label: string; onClick: () => void; disabled?: boolean; icon?: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex min-h-10 items-center justify-center gap-2 border border-gray-800 bg-black px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-200 transition-colors hover:border-neo-magenta hover:text-neo-magenta disabled:cursor-not-allowed disabled:opacity-35"
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

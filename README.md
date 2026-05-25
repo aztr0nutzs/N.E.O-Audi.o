@@ -100,6 +100,14 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Open Queue / Up Next from the Player, Dashboard preview, and MiniPlayer queue control.
 - Save the current queue snapshot as a playlist when the queue has tracks.
 
+## EQ Preset Vault
+
+- Built-in presets are grouped into Core, Bass, Vocals, Night, Retro, Device, and Custom categories.
+- Custom presets save locally with the current 10-band curve and spatial setting, and can be renamed or deleted.
+- A/B compare captures two EQ states and reapplies either slot without interrupting playback.
+- Mini curve previews show preset and compare-slot response shapes without a chart dependency.
+- Presets persist locally through `neo-eq-custom-presets`; A/B compare is session-only.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`
