@@ -131,6 +131,36 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Signal chain presets include Clean, Bass Reactor, Night Drive, Vocal Focus, Safe Loud, and Wide Space.
 - EQ slider behavior and existing playback/analyser behavior are preserved.
 
+## Android / Capacitor
+
+N.E.O Audio Lab includes a Capacitor Android wrapper for building a debug APK from the existing React/Vite app.
+
+Required tools: Node.js, npm, Android Studio, Android SDK, and a JDK compatible with the generated Gradle/Android plugin.
+
+Setup and sync:
+
+```bash
+npm ci
+npm run build
+npx cap sync android
+npx cap open android
+```
+
+Build a debug APK:
+
+```bash
+npm run android:build:debug
+```
+
+PowerShell Gradle equivalent:
+
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+```
+
+The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. Background playback and media notifications are not complete unless implemented later.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`
