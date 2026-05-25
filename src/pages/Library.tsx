@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 import { Track, LOSSLESS_FORMATS } from '../types';
 import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { MetadataLab } from '../components/library/MetadataLab';
+import { CoverArt } from '../components/media/CoverArt';
 
 const VaultNode = ({ title, subtitle, icon, color, className, onClick }: { title: string, subtitle: string, icon: React.ReactNode, color: string, className?: string, onClick?: () => void }) => {
    const colorMap: any = {
@@ -302,13 +303,15 @@ export function Library() {
                              <p className="text-xs uppercase mt-4 max-w-xs text-gray-500">Edit track metadata to add genres and populate this vault.</p>
                           </div>
                        );
-                       return uniqueMoods.filter(m => !search || m.toLowerCase().includes(search.toLowerCase())).map((mood) => (
+                       return uniqueMoods.filter(m => !search || m.toLowerCase().includes(search.toLowerCase())).map((mood) => {
+                          const moodTrack = tracks.find(t => t.genre && t.genre.toLowerCase().split(',').map(s=>s.trim()).includes(mood.toLowerCase()));
+                          return (
                           <div key={mood} 
                              onClick={() => { setSelectedId(mood); setView('mood_tracks'); }}
                              className="flex items-center gap-4 cursor-pointer group mb-2 border border-neo-lime/30 bg-[#060608] hover:bg-neo-lime/10 p-4 rounded-lg transition-colors">
-                             <div className="w-12 h-12 rounded border border-neo-lime text-neo-lime flex items-center justify-center bg-black">
+                             {moodTrack ? <CoverArt track={moodTrack} size="md" /> : <div className="w-12 h-12 rounded border border-neo-lime text-neo-lime flex items-center justify-center bg-black">
                                 <Smile className="w-6 h-6 drop-shadow-[0_0_5px_currentColor]" />
-                             </div>
+                             </div>}
                              <div className="flex-1">
                                 <h3 className="text-lg font-bold tracking-widest text-white italic uppercase drop-shadow-[0_0_5px_currentColor]">
                                    {mood}
@@ -316,7 +319,7 @@ export function Library() {
                                 <p className="text-xs font-mono tracking-widest text-neo-lime mt-1 uppercase">PACK</p>
                              </div>
                           </div>
-                       ));
+                       )});
                     }
 
                     if (view === 'playlists') {
@@ -340,14 +343,16 @@ export function Library() {
                                    NO PLAYLISTS CONFIGURED.
                                 </div>
                              ) : (
-                                filteredPlaylists.map((pl) => (
+                                filteredPlaylists.map((pl) => {
+                                  const coverTrack = pl.trackIds.map(id => tracks.find(t => t.id === id)).find(Boolean) as Track | undefined;
+                                  return (
                                    <div key={pl.id} 
                                       className="flex items-center gap-4 group mb-2 border border-neo-yellow/30 bg-[#060608] hover:bg-neo-yellow/10 p-4 rounded-lg transition-colors cursor-pointer"
                                       onClick={() => { setSelectedId(pl.id); setView('playlist_tracks'); }}
                                    >
-                                      <div className="w-12 h-12 rounded border border-neo-yellow text-neo-yellow flex items-center justify-center bg-black">
+                                      {coverTrack ? <CoverArt track={coverTrack} size="md" /> : <div className="w-12 h-12 rounded border border-neo-yellow text-neo-yellow flex items-center justify-center bg-black">
                                          <Folder className="w-6 h-6 drop-shadow-[0_0_5px_currentColor]" />
-                                      </div>
+                                      </div>}
                                       <div className="flex-1">
                                          <h3 className="text-lg font-bold tracking-widest text-white italic uppercase drop-shadow-[0_0_5px_currentColor]">
                                             {pl.name}
@@ -355,7 +360,7 @@ export function Library() {
                                          <p className="text-xs font-mono tracking-widest text-neo-yellow mt-1 uppercase">{pl.trackIds.length} TRACKS</p>
                                       </div>
                                    </div>
-                                ))
+                                )})
                              )}
                           </div>
                        );
@@ -382,23 +387,14 @@ export function Library() {
                        );
                     }
 
-                    return displayedTracks.map((track, i) => {
+                    return displayedTracks.map((track) => {
                        const isCurrent = currentTrackId === track.id;
-                       const colors = ['neo-magenta', 'neo-lime', 'neo-cyan'];
-                       const color = colors[i % colors.length];
-                       
                        return (
                           <div key={track.id} className="flex flex-col md:flex-row gap-4 w-full items-center group mb-2 border border-gray-800 bg-[#060608] hover:bg-[#0a0a0f] p-3 rounded-lg transition-colors">
                              <div className={cn(
                                 "flex-1 w-full relative flex items-center gap-4"
                              )}>
-                                <div className={cn("w-12 h-12 rounded border flex items-center justify-center bg-black", 
-                                   color === 'neo-magenta' ? 'border-neo-magenta text-neo-magenta' :
-                                   color === 'neo-lime' ? 'border-neo-lime text-neo-lime' :
-                                   'border-neo-cyan text-neo-cyan'
-                                )}>
-                                   <Music className="w-6 h-6 drop-shadow-[0_0_5px_currentColor]" />
-                                </div>
+                                <CoverArt track={track} size="md" active={isCurrent && isPlaying} />
                                 <div className="flex-1">
                                    <h3 onClick={() => navigate(`/track/${track.id}`)} className="text-sm font-bold tracking-widest text-white italic truncate uppercase drop-shadow-[0_0_5px_currentColor] max-w-[200px] sm:max-w-sm cursor-pointer hover:text-neo-cyan">
                                       {track.title}

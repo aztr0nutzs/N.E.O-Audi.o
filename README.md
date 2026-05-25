@@ -108,6 +108,14 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - Mini curve previews show preset and compare-slot response shapes without a chart dependency.
 - Presets persist locally through `neo-eq-custom-presets`; A/B compare is session-only.
 
+## Cover Art System
+
+- Tracks support embedded, uploaded, downloaded, and generated cover art metadata.
+- Uploaded cover art is stored under `uploads/covers/` and served through safe `/api/covers/:filename` paths.
+- Local uploads attempt embedded artwork extraction; downloaded jobs attempt thumbnail capture and continue with generated fallback art if unavailable.
+- Generated N.E.O fallback covers use deterministic neon reactor visuals based on track title, artist, genre, or mood.
+- Cover art appears across Library, Player, Dashboard, Queue, Track Detail, MiniPlayer, and Metadata Lab where those tracks are displayed.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`

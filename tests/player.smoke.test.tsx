@@ -117,6 +117,7 @@ describe('Player smoke', () => {
     render(<MemoryRouter><Player /></MemoryRouter>);
 
     expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
+    expect(screen.getByTestId('generated-cover-art')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /rewind 15 seconds/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /fast-forward 15 seconds/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument();

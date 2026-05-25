@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Track } from '../../types';
 import toast from 'react-hot-toast';
+import { CoverArtEditor } from '../media/CoverArtEditor';
 
 interface MetadataLabProps {
   track: Track;
@@ -47,6 +48,7 @@ export function MetadataLab({ track, open, onClose, onSave }: MetadataLabProps) 
   };
   if (!open) return null;
   return <div className="fixed inset-0 z-[90] bg-black/80 p-3 md:p-6 backdrop-blur-sm"><div className="max-w-3xl mx-auto armored-frame bg-[#07080f] border-neo-cyan/40 p-4 md:p-6 max-h-[90vh] overflow-y-auto"><h2 className="text-2xl font-black italic tracking-widest text-neo-cyan">METADATA LAB</h2><p className="text-xs font-mono text-neo-magenta tracking-widest mb-4">TAG / ORGANIZE / INDEX</p>
+  <div className="mb-4"><CoverArtEditor track={track} /></div>
   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
     <input aria-label="Title" value={form.title || ''} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} placeholder="Title" className="bg-black border border-gray-700 p-2" />
     <input aria-label="Artist" value={form.artist || ''} onChange={(e) => setForm((s) => ({ ...s, artist: e.target.value }))} placeholder="Artist" className="bg-black border border-gray-700 p-2" />

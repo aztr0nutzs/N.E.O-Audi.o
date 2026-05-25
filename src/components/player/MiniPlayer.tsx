@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Music } from 'lucide-react';
 import { usePlayerStore } from '../../store/usePlayerStore';
 import { useLibraryStore } from '../../store/useLibraryStore';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -7,6 +6,7 @@ import { NeonProgressBar } from '../ui/NeonProgressBar';
 import { NeoImageButton } from '../ui/NeoImageButton';
 import { NEO_AUDIO_BUTTONS } from '../../lib/neoAudioAssets';
 import { QueuePanel } from './QueuePanel';
+import { CoverArt } from '../media/CoverArt';
 
 export function MiniPlayer() {
   const { currentTrackId, isPlaying, pause, resume, next, progress, queue, queueIndex } = usePlayerStore();
@@ -32,13 +32,7 @@ export function MiniPlayer() {
           onClick={() => navigate('/player')}
           className="flex cursor-pointer items-center space-x-3 overflow-hidden bg-transparent border-0 p-0 text-left"
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-800">
-            {track?.coverArt ? (
-              <img src={track.coverArt} alt="Cover" className="h-full w-full object-cover" />
-            ) : (
-              <Music className="text-gray-400" />
-            )}
-          </div>
+          {track && <CoverArt track={track} size="sm" active={isPlaying} />}
           <div className="flex flex-col overflow-hidden">
             <span className="truncate text-sm font-medium text-white">{track?.title || 'Unknown Track'}</span>
             <span className="truncate text-xs text-gray-400">{track?.artist || 'Unknown Artist'}</span>

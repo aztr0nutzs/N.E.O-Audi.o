@@ -71,6 +71,7 @@ describe('Dashboard command center', () => {
 
     expect(screen.getAllByText(/grid runner/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/neon unit/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('generated-cover-art').length).toBeGreaterThan(0);
     expect(screen.getByText(/failed: 1/i)).toBeInTheDocument();
   });
 

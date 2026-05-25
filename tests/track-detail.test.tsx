@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
-const libRef: any = { current: { tracks: [], isLoading: false, loadLibrary: vi.fn(), updateTrack: vi.fn(), removeTrack: vi.fn() } };
+const libRef: any = { current: { tracks: [], isLoading: false, loadLibrary: vi.fn(), updateTrack: vi.fn(), removeTrack: vi.fn(), uploadCoverArt: vi.fn(), removeCoverArt: vi.fn() } };
 const playerRef: any = { current: { currentTrackId: null, isPlaying: false, playTrack: vi.fn(), pause: vi.fn(), resume: vi.fn(), addToQueue: vi.fn(), analyserNode: null } };
 
 vi.mock('../src/store/useLibraryStore', () => ({ useLibraryStore: () => libRef.current }));
@@ -24,6 +24,7 @@ describe('TrackDetail', () => {
     const { TrackDetail } = await import('../src/pages/TrackDetail');
     render(<MemoryRouter initialEntries={['/track/t1']}><Routes><Route path="/track/:id" element={<TrackDetail />} /></Routes></MemoryRouter>);
     expect(screen.getByText(/known track/i)).toBeInTheDocument();
+    expect(screen.getByText(/cover art core/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /play \/ pause/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open player/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open equalizer/i })).toBeInTheDocument();

@@ -8,6 +8,7 @@ import { NeoImageButton } from '../components/ui/NeoImageButton';
 import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
 import toast from 'react-hot-toast';
 import { MetadataLab } from '../components/library/MetadataLab';
+import { CoverArtEditor } from '../components/media/CoverArtEditor';
 
 const hashBars = (seed: string, count = 48) => {
   let hash = 0;
@@ -98,10 +99,7 @@ export function TrackDetail() {
     </div>
     <div className="grid md:grid-cols-[280px,1fr] gap-4">
       <div className={`cyber-panel p-4 ${isCurrent && isPlaying ? 'animate-pulse border-neo-lime/50' : ''}`}>
-        {track.coverArt ? <img src={track.coverArt} alt={`${track.title} cover`} className="w-full aspect-square object-cover rounded-lg border border-neo-cyan/30" /> :
-          <div className="w-full aspect-square rounded-lg border border-neo-cyan/40 flex items-center justify-center bg-gradient-to-br from-neo-cyan/20 via-neo-magenta/20 to-neo-lime/20">
-            <span className="text-4xl font-black italic text-white">{track.title.split(' ').map((p) => p[0]).join('').slice(0, 3).toUpperCase()}</span>
-          </div>}
+        <CoverArtEditor track={track} />
       </div>
       <div className="cyber-panel p-4 space-y-3">
         <h2 className="text-xl font-bold text-white">{track.title}</h2>
@@ -111,6 +109,7 @@ export function TrackDetail() {
           <div>Format: <span className="text-neo-cyan uppercase">{track.format}</span></div><div>Bitrate: <span className="text-neo-cyan">{track.bitrate ? `${track.bitrate} kbps` : 'Unknown'}</span></div>
           <div>File size: <span className="text-neo-cyan">{(track.size / (1024 * 1024)).toFixed(2)} MB</span></div><div>Source type: <span className="text-neo-cyan uppercase">{track.sourceType}</span></div>
           <div>Date added: <span className="text-neo-cyan">{new Date(track.createdAt).toLocaleString()}</span></div>
+          <div>Cover source: <span className="text-neo-cyan uppercase">{track.coverArtSource || (track.coverArtUrl || track.coverArt ? 'legacy' : 'generated')}</span></div>
         </div>
       </div>
     </div>

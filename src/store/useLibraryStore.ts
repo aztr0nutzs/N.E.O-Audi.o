@@ -15,6 +15,8 @@ interface LibraryState {
   addTrack: (track: Partial<Track>, blob?: Blob) => Promise<void>;
   removeTrack: (id: string) => Promise<void>;
   updateTrack: (id: string, updates: Partial<Track>) => Promise<void>;
+  uploadCoverArt: (trackId: string, file: File) => Promise<Track>;
+  removeCoverArt: (trackId: string) => Promise<Track>;
   addPlaylist: (playlist: Playlist) => Promise<void>;
   removePlaylist: (id: string) => Promise<void>;
   updatePlaylist: (id: string, updates: Partial<Playlist>) => Promise<void>;
@@ -68,6 +70,30 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       const saved = await storage.saveTrack(updated);
       set((state) => ({ tracks: state.tracks.map(t => t.id === id ? (saved || updated) : t) }));
     } catch (e) {
+      throw e;
+    }
+  },
+
+  uploadCoverArt: async (trackId, file) => {
+    try {
+      const updated = await storage.uploadCoverArt(trackId, file);
+      set((state) => ({ tracks: state.tracks.map(t => t.id === trackId ? updated : t) }));
+      toast.success('Cover art updated');
+      return updated;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to upload cover art');
+      throw e;
+    }
+  },
+
+  removeCoverArt: async (trackId) => {
+    try {
+      const updated = await storage.removeCoverArt(trackId);
+      set((state) => ({ tracks: state.tracks.map(t => t.id === trackId ? updated : t) }));
+      toast.success('Cover art removed');
+      return updated;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to remove cover art');
       throw e;
     }
   },

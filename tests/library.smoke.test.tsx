@@ -44,6 +44,7 @@ describe('Library smoke', () => {
     expect(screen.getByText(/mood packs/i)).toBeInTheDocument();
     expect(screen.getByText(/playlists/i)).toBeInTheDocument();
     fireEvent.click(screen.getByText(/downloaded/i));
+    expect(screen.getByTestId('generated-cover-art')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /track details/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /metadata lab/i })).toBeInTheDocument();
   });

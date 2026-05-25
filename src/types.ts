@@ -25,6 +25,11 @@ export interface Track {
   duration: number; // in seconds
   size: number; // in bytes
   coverArt?: string; // base64 or url
+  coverArtUrl?: string;
+  coverArtSource?: 'embedded' | 'uploaded' | 'generated' | 'downloaded';
+  coverArtUpdatedAt?: string;
+  dominantColor?: string;
+  accentColor?: string;
   createdAt: number;
   updatedAt: number;
   favorite: boolean;
@@ -33,7 +38,6 @@ export interface Track {
   notes?: string;
   energyLevel?: 1 | 2 | 3 | 4 | 5;
   explicit?: boolean;
-  coverArtUrl?: string;
 }
 
 export interface Playlist {

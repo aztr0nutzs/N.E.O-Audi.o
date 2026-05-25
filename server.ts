@@ -23,6 +23,9 @@ const MAX_DOWNLOAD_SIZE_MB = parseInt(process.env.MAX_DOWNLOAD_SIZE_MB || "500")
 const DOWNLOAD_JOB_RETENTION_HOURS = parseInt(process.env.DOWNLOAD_JOB_RETENTION_HOURS || "24");
 const MIN_DOWNLOAD_SIZE_BYTES = 1024;
 const FILENAME_MAX_LEN = 120;
+const MAX_COVER_SIZE_BYTES = 5 * 1024 * 1024;
+const SUPPORTED_COVER_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp']);
+const SUPPORTED_COVER_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 // Optional comma-separated allowlist of hostnames. Empty/unset => allow all http(s) sources.
 // The user remains solely responsible for complying with the legal/compliance warning.
@@ -76,6 +79,10 @@ const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
+const COVERS_DIR = path.join(UPLOADS_DIR, 'covers');
+if (!fs.existsSync(COVERS_DIR)) {
+  fs.mkdirSync(COVERS_DIR, { recursive: true });
+}
 
 // In-memory or simple JSON DB for tracks
 const DB_FILE = path.join(UPLOADS_DIR, 'db.json');
@@ -125,6 +132,11 @@ type Track = {
   duration: number;
   size: number;
   coverArt?: string;
+  coverArtUrl?: string;
+  coverArtSource?: 'embedded' | 'uploaded' | 'generated' | 'downloaded';
+  coverArtUpdatedAt?: string;
+  dominantColor?: string;
+  accentColor?: string;
   createdAt: number;
   updatedAt: number;
   favorite: boolean;
@@ -150,6 +162,11 @@ const migrateLegacyTrack = (raw: any): Track | null => {
       duration: typeof raw.duration === 'number' ? raw.duration : 0,
       size: typeof raw.size === 'number' ? raw.size : 0,
       coverArt: typeof raw.coverArt === 'string' ? raw.coverArt : undefined,
+      coverArtUrl: typeof raw.coverArtUrl === 'string' ? raw.coverArtUrl : undefined,
+      coverArtSource: ['embedded', 'uploaded', 'generated', 'downloaded'].includes(raw.coverArtSource) ? raw.coverArtSource : undefined,
+      coverArtUpdatedAt: typeof raw.coverArtUpdatedAt === 'string' ? raw.coverArtUpdatedAt : undefined,
+      dominantColor: typeof raw.dominantColor === 'string' ? raw.dominantColor : undefined,
+      accentColor: typeof raw.accentColor === 'string' ? raw.accentColor : undefined,
       createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
       updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
       favorite: Boolean(raw.favorite),
@@ -176,6 +193,27 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+const coverStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, COVERS_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).replace('.', '').toLowerCase();
+    const safeExt = ext === 'jpeg' ? 'jpg' : ext;
+    const base = buildSafeBasename(file.originalname.replace(/\.[^/.]+$/, ''), 'cover');
+    cb(null, `${req.params.id}-${Date.now()}-${base}.${safeExt}`);
+  }
+});
+const coverUpload = multer({
+  storage: coverStorage,
+  limits: { fileSize: MAX_COVER_SIZE_BYTES },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).replace('.', '').toLowerCase();
+    const mimetype = (file.mimetype || '').toLowerCase();
+    if (!SUPPORTED_COVER_EXTENSIONS.has(ext) || !SUPPORTED_COVER_MIME_TYPES.has(mimetype)) {
+      return cb(new Error('Unsupported cover image type'));
+    }
+    cb(null, true);
+  }
+});
 
 // API: Get all tracks
 app.get("/api/tracks", (req, res) => {
@@ -320,6 +358,17 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
       favorite: false
     };
 
+    try {
+       const embeddedCoverUrl = await extractEmbeddedCoverArt(file.path, t.id);
+       if (embeddedCoverUrl) {
+          t.coverArtUrl = embeddedCoverUrl;
+          t.coverArtSource = 'embedded';
+          t.coverArtUpdatedAt = new Date().toISOString();
+       }
+    } catch (coverErr) {
+       console.warn('Embedded cover extraction failed:', coverErr);
+    }
+
     tracks.unshift(t);
     saveDb();
 
@@ -389,6 +438,62 @@ app.patch("/api/tracks/:id", (req, res) => {
   res.json(t);
 });
 
+// API: Serve stored cover art from uploads/covers only.
+app.get("/api/covers/:filename", (req, res) => {
+  const file = safeResolveCoverPath(req.params.filename);
+  if (!file || !fs.existsSync(file) || !isValidCoverFile(file)) return res.status(404).send('Not found');
+  const mimeType = mime.lookup(file) || 'application/octet-stream';
+  res.setHeader('Content-Type', mimeType.toString());
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  fs.createReadStream(file).pipe(res);
+});
+
+// API: Upload/replace track cover art.
+app.post("/api/tracks/:id/cover", (req, res) => {
+  const trackIdx = tracks.findIndex(t => t.id === req.params.id);
+  if (trackIdx === -1) return res.status(404).json({ error: "Track not found", errorCode: "track_not_found" });
+
+  coverUpload.single('cover')(req, res, (err: any) => {
+    if (err) {
+      return res.status(err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE' ? 413 : 415).json({
+        error: err.code === 'LIMIT_FILE_SIZE' ? 'Cover image exceeds 5 MB.' : 'Unsupported cover image type.',
+        errorCode: err.code === 'LIMIT_FILE_SIZE' ? 'cover_too_large' : 'unsupported_cover_type',
+      });
+    }
+
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: "No cover image uploaded", errorCode: "missing_cover" });
+    const safe = safeResolveCoverPath(file.filename);
+    if (!safe || !isValidCoverFile(safe)) {
+      if (safe) tryUnlink(safe);
+      return res.status(415).json({ error: "Unsupported cover image type.", errorCode: "unsupported_cover_type" });
+    }
+
+    const track = tracks[trackIdx];
+    removeStoredCoverIfAny(track);
+    track.coverArtUrl = coverUrlForFilename(file.filename);
+    track.coverArtSource = 'uploaded';
+    track.coverArtUpdatedAt = new Date().toISOString();
+    track.updatedAt = Date.now();
+    saveDb();
+    res.json(track);
+  });
+});
+
+// API: Remove stored cover art for a track.
+app.delete("/api/tracks/:id/cover", (req, res) => {
+  const trackIdx = tracks.findIndex(t => t.id === req.params.id);
+  if (trackIdx === -1) return res.status(404).json({ error: "Track not found", errorCode: "track_not_found" });
+  const track = tracks[trackIdx];
+  removeStoredCoverIfAny(track);
+  track.coverArtUrl = undefined;
+  track.coverArtSource = undefined;
+  track.coverArtUpdatedAt = new Date().toISOString();
+  track.updatedAt = Date.now();
+  saveDb();
+  res.json(track);
+});
+
 // API: Stream file
 app.get("/api/stream/:filename", (req, res) => {
   const file = safeResolveUploadPath(req.params.filename);
@@ -429,6 +534,7 @@ app.delete("/api/tracks/:id", (req, res) => {
   const trackIdx = tracks.findIndex(t => t.id === id);
   if (trackIdx !== -1) {
     const track = tracks[trackIdx];
+    removeStoredCoverIfAny(track);
     if (track.localUrl.startsWith('/api/stream/')) {
         const filename = path.basename(track.localUrl);
         const filepath = safeResolveUploadPath(filename);
@@ -481,6 +587,7 @@ const isActiveJobStatus = (status: JobStatus): boolean => ACTIVE_JOB_STATUSES.in
 const isTerminalJobStatus = (status: JobStatus): boolean => TERMINAL_JOB_STATUSES.includes(status);
 
 const UPLOADS_DIR_ABS = path.resolve(UPLOADS_DIR);
+const COVERS_DIR_ABS = path.resolve(COVERS_DIR);
 
 // Resolve a filename against UPLOADS_DIR_ABS, returning null when the result
 // would escape the uploads directory. The caller must treat null as "do not touch".
@@ -492,6 +599,111 @@ const safeResolveUploadPath = (filename: string): string | null => {
    const rel = path.relative(UPLOADS_DIR_ABS, resolved);
    if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return null;
    return resolved;
+};
+
+const safeResolveCoverPath = (filename: string): string | null => {
+   if (typeof filename !== 'string' || filename.length === 0) return null;
+   const base = path.basename(filename);
+   if (!base || base === '.' || base === '..') return null;
+   const resolved = path.resolve(COVERS_DIR_ABS, base);
+   const rel = path.relative(COVERS_DIR_ABS, resolved);
+   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return null;
+   return resolved;
+};
+
+const coverUrlForFilename = (filename: string) => `/api/covers/${encodeURIComponent(path.basename(filename))}`;
+
+const uploadedCoverFilename = (track: Track): string | null => {
+   const url = track.coverArtUrl;
+   if (!url || !url.startsWith('/api/covers/')) return null;
+   try {
+      return decodeURIComponent(path.basename(url));
+   } catch {
+      return path.basename(url);
+   }
+};
+
+const removeStoredCoverIfAny = (track: Track): void => {
+   const filename = uploadedCoverFilename(track);
+   if (!filename) return;
+   const safe = safeResolveCoverPath(filename);
+   if (safe) unlinkSafely(safe);
+};
+
+const isValidCoverFile = (filePath: string): boolean => {
+   try {
+      const stat = fs.statSync(filePath);
+      if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_COVER_SIZE_BYTES) return false;
+      const ext = path.extname(filePath).replace('.', '').toLowerCase();
+      const mimeType = (mime.lookup(filePath) || '').toString().toLowerCase();
+      return SUPPORTED_COVER_EXTENSIONS.has(ext) && SUPPORTED_COVER_MIME_TYPES.has(mimeType);
+   } catch {
+      return false;
+   }
+};
+
+const extractEmbeddedCoverArt = async (audioPath: string, trackId: string): Promise<string | null> => {
+   const output = safeResolveCoverPath(`${trackId}-${Date.now()}-embedded.jpg`);
+   if (!output) return null;
+   try {
+      await execFileAsync(ffmpegInstaller.path, [
+         '-y',
+         '-i', audioPath,
+         '-an',
+         '-vcodec', 'mjpeg',
+         '-frames:v', '1',
+         output
+      ], { timeout: 15000, maxBuffer: 1024 * 1024 });
+      if (!isValidCoverFile(output)) {
+         tryUnlink(output);
+         return null;
+      }
+      return coverUrlForFilename(path.basename(output));
+   } catch {
+      tryUnlink(output);
+      return null;
+   }
+};
+
+const saveDownloadedThumbnailCover = async (thumbnailUrl: unknown, trackId: string, log?: (message: string) => void): Promise<string | null> => {
+   if (typeof thumbnailUrl !== 'string' || !thumbnailUrl) return null;
+   let parsed: URL;
+   try {
+      parsed = new URL(thumbnailUrl);
+   } catch {
+      return null;
+   }
+   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+   try {
+      const res = await fetch(parsed, { redirect: 'follow' });
+      if (!res.ok) {
+         log?.(`cover thumbnail fetch failed (${res.status})`);
+         return null;
+      }
+      const contentType = (res.headers.get('content-type') || '').split(';')[0].toLowerCase();
+      if (!SUPPORTED_COVER_MIME_TYPES.has(contentType)) {
+         log?.(`cover thumbnail ignored (${contentType || 'unknown content type'})`);
+         return null;
+      }
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (buffer.length <= 0 || buffer.length > MAX_COVER_SIZE_BYTES) {
+         log?.('cover thumbnail ignored (invalid size)');
+         return null;
+      }
+      const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+      const filePath = safeResolveCoverPath(`${trackId}-${Date.now()}-downloaded.${ext}`);
+      if (!filePath) return null;
+      fs.writeFileSync(filePath, buffer);
+      if (!isValidCoverFile(filePath)) {
+         tryUnlink(filePath);
+         return null;
+      }
+      log?.('cover thumbnail stored');
+      return coverUrlForFilename(path.basename(filePath));
+   } catch (error: any) {
+      log?.(`cover thumbnail unavailable: ${error?.message || error}`);
+      return null;
+   }
 };
 
 const unlinkSafely = (resolvedPath: string): void => {
@@ -949,9 +1161,18 @@ const runDownloadEngine = async (jobId: string) => {
         job.actualBitrate = actualBitrate || job.bitrate;
         job.fileSize = stat.size;
 
+        const trackId = crypto.randomUUID();
+        let downloadedCoverUrl: string | null = null;
+        try {
+            downloadedCoverUrl = await saveDownloadedThumbnailCover(meta?.thumbnail, trackId, log);
+            if (!downloadedCoverUrl) log('cover thumbnail unavailable; generated fallback will be used');
+        } catch (coverErr: any) {
+            log(`cover thumbnail failed: ${coverErr?.message || coverErr}`);
+        }
+
         // ---- Phase 5: create Track only after every check passes ----
         const newTrack: Track = {
-            id: crypto.randomUUID(),
+            id: trackId,
             title: buildSafeBasename(title, 'audio'),
             artist: artist,
             sourceType: 'downloaded',
@@ -965,6 +1186,12 @@ const runDownloadEngine = async (jobId: string) => {
             updatedAt: Date.now(),
             favorite: false
         };
+
+        if (downloadedCoverUrl) {
+            newTrack.coverArtUrl = downloadedCoverUrl;
+            newTrack.coverArtSource = 'downloaded';
+            newTrack.coverArtUpdatedAt = new Date().toISOString();
+        }
 
         tracks.unshift(newTrack);
         saveDb();
@@ -1231,6 +1458,22 @@ app.post("/api/reset", (req, res) => {
               }
            }
        }
+       let coverEntries: string[] = [];
+       try { coverEntries = fs.readdirSync(COVERS_DIR_ABS); } catch (_e) { coverEntries = []; }
+       for (const entry of coverEntries) {
+           const safe = safeResolveCoverPath(entry);
+           if (!safe) continue;
+           try {
+              if (fs.lstatSync(safe).isFile()) {
+                 fs.unlinkSync(safe);
+                 summary.filesDeleted++;
+              }
+           } catch (e: any) {
+              if (e?.code !== 'ENOENT') {
+                 console.warn(`reset: failed to remove cover ${entry}: ${e.message}`);
+              }
+           }
+       }
 
        // 4. Recreate db.json and jobs.json as empty arrays so the app starts clean.
        try { fs.writeFileSync(DB_FILE, '[]'); } catch (e: any) { console.warn(`reset: failed to recreate db.json: ${e.message}`); }
@@ -1278,6 +1521,8 @@ export async function startServer(port: number = PORT) {
 export const __serverInternals = {
   getDownloadJobs: () => downloadJobs,
   getJobProcesses: () => jobProcesses,
+  getTracks: () => tracks,
+  saveDb: () => saveDb(),
 };
 
 let shuttingDown = false;

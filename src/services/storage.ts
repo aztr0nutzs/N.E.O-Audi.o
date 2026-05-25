@@ -79,6 +79,11 @@ export const storage = {
     if (track.genre !== undefined) editable.genre = track.genre;
     if (track.favorite !== undefined) editable.favorite = track.favorite;
     if (track.mood !== undefined) editable.mood = track.mood;
+    if (track.tags !== undefined) editable.tags = track.tags;
+    if (track.notes !== undefined) editable.notes = track.notes;
+    if (track.energyLevel !== undefined) editable.energyLevel = track.energyLevel;
+    if (track.explicit !== undefined) editable.explicit = track.explicit;
+    if (track.coverArtUrl !== undefined) editable.coverArtUrl = track.coverArtUrl;
 
     const res = await fetch(`/api/tracks/${track.id}`, {
       method: 'PATCH',
@@ -109,6 +114,20 @@ export const storage = {
     const res = await fetch(`/api/tracks/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await extractApiError(res, 'Failed to delete track'));
     return await res.json().catch(() => ({ success: true }));
+  },
+
+  async uploadCoverArt(trackId: string, file: File): Promise<Track> {
+    const fd = new FormData();
+    fd.append('cover', file);
+    const res = await fetch(`/api/tracks/${trackId}/cover`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await extractApiError(res, 'Failed to upload cover art'));
+    return await res.json();
+  },
+
+  async removeCoverArt(trackId: string): Promise<Track> {
+    const res = await fetch(`/api/tracks/${trackId}/cover`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await extractApiError(res, 'Failed to remove cover art'));
+    return await res.json();
   },
 
   async savePlaylist(playlist: Playlist) {

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { app } from '../server';
+import { app, __serverInternals } from '../server';
 
 const createdJobIds: string[] = [];
 
@@ -89,5 +89,70 @@ describe('PATCH /api/tracks/:id metadata validation', () => {
     const res = await request(app).patch('/api/tracks/missing-track').send({ title: 'X' });
     expect(res.status).toBe(404);
     expect(res.body.errorCode).toBe('track_not_found');
+  });
+});
+
+describe('Cover art API', () => {
+  const addTrack = (id: string) => {
+    const tracks = __serverInternals.getTracks();
+    tracks.push({
+      id,
+      title: 'Cover API Track',
+      artist: 'API Artist',
+      sourceType: 'local',
+      localUrl: '/api/stream/test.mp3',
+      format: 'mp3',
+      duration: 1,
+      size: 1,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      favorite: false,
+    } as any);
+    return () => {
+      for (let idx = tracks.length - 1; idx >= 0; idx--) {
+        if ((tracks[idx] as any).id === id) tracks.splice(idx, 1);
+      }
+      __serverInternals.saveDb();
+    };
+  };
+
+  it('rejects non-image cover upload', async () => {
+    const cleanup = addTrack('cover-non-image');
+    const res = await request(app)
+      .post('/api/tracks/cover-non-image/cover')
+      .attach('cover', Buffer.from('not image'), { filename: 'not-image.txt', contentType: 'text/plain' });
+    expect(res.status).toBe(415);
+    expect(res.body.errorCode).toBe('unsupported_cover_type');
+    cleanup();
+  });
+
+  it('missing track returns 404 for cover upload', async () => {
+    const res = await request(app)
+      .post('/api/tracks/missing-cover-track/cover')
+      .attach('cover', Buffer.from('fake'), { filename: 'cover.png', contentType: 'image/png' });
+    expect(res.status).toBe(404);
+    expect(res.body.errorCode).toBe('track_not_found');
+  });
+
+  it('remove cover missing track returns 404', async () => {
+    const res = await request(app).delete('/api/tracks/missing-cover-track/cover');
+    expect(res.status).toBe(404);
+    expect(res.body.errorCode).toBe('track_not_found');
+  });
+
+  it('uploads a small png cover', async () => {
+    const cleanup = addTrack('cover-upload-ok');
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const res = await request(app)
+      .post('/api/tracks/cover-upload-ok/cover')
+      .attach('cover', png, { filename: 'cover.png', contentType: 'image/png' });
+    expect(res.status).toBe(200);
+    expect(res.body.coverArtSource).toBe('uploaded');
+    expect(res.body.coverArtUrl).toMatch(/^\/api\/covers\//);
+    await request(app).delete('/api/tracks/cover-upload-ok/cover');
+    cleanup();
   });
 });

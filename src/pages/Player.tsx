@@ -13,6 +13,7 @@ import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { NEO_AUDIO_BUTTONS } from '../lib/neoAudioAssets';
 import { MetadataLab } from '../components/library/MetadataLab';
 import { QueuePanel } from '../components/player/QueuePanel';
+import { CoverArt } from '../components/media/CoverArt';
 
 export function Player() {
   const {
@@ -190,6 +191,9 @@ export function Player() {
          {/* Inner Reactor */}
          <div className="absolute inset-[15%] rounded-full bg-black">
             <ReactorCoreVisual className="w-full h-full" intensity={isPlaying ? 'high' : 'low'} />
+         </div>
+         <div className="absolute inset-[28%] rounded-full overflow-hidden border border-neo-cyan/40 shadow-[0_0_25px_rgba(0,240,255,0.22)]">
+            <CoverArt track={track} size="xl" active={isPlaying} className="h-full w-full rounded-full border-0 opacity-90" imageClassName="rounded-full" />
          </div>
       </div>
 

@@ -61,5 +61,21 @@ export const api = {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to reset");
     return data;
+  },
+
+  async uploadCoverArt(trackId: string, file: File): Promise<Track> {
+    const fd = new FormData();
+    fd.append('cover', file);
+    const res = await fetch(`/api/tracks/${trackId}/cover`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to upload cover art");
+    return data;
+  },
+
+  async removeCoverArt(trackId: string): Promise<Track> {
+    const res = await fetch(`/api/tracks/${trackId}/cover`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to remove cover art");
+    return data;
   }
 };

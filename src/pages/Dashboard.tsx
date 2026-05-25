@@ -9,6 +9,7 @@ import { useDownloadStore } from '../store/useDownloadStore';
 import { useEqualizerStore } from '../store/useEqualizerStore';
 import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { cn, formatDuration } from '../lib/utils';
+import { CoverArt } from '../components/media/CoverArt';
 
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'analyzing', 'downloading', 'converting', 'indexing']);
 
@@ -172,8 +173,13 @@ export function Dashboard() {
           <h2 className="text-sm font-bold tracking-widest text-neo-lime uppercase mb-3">Now Playing</h2>
           {currentTrack ? (
             <div className="space-y-2 text-sm">
-              <p className="font-bold text-white truncate">{currentTrack.title}</p>
-              <p className="text-neo-cyan truncate uppercase text-xs tracking-wider">{currentTrack.artist}</p>
+              <div className="flex items-center gap-3">
+                <CoverArt track={currentTrack} size="lg" active={isPlaying} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white truncate">{currentTrack.title}</p>
+                  <p className="text-neo-cyan truncate uppercase text-xs tracking-wider">{currentTrack.artist}</p>
+                </div>
+              </div>
               <p className="font-mono text-xs">{currentTrack.format.toUpperCase()} / {currentTrack.bitrate ? `${currentTrack.bitrate}kbps` : 'UNKNOWN'}</p>
               <p className="font-mono text-xs">{formatDuration((progress || 0) * (duration || currentTrack.duration || 0))} / {formatDuration(duration || currentTrack.duration || 0)}</p>
               <div className="flex gap-2 flex-wrap pt-1">
@@ -218,10 +224,13 @@ export function Dashboard() {
           {upNext.length ? (
             <div className="mt-3 space-y-2">
               {upNext.map(track => (
-                <div key={track!.id} className="border border-gray-800 bg-black/40 p-2">
-                  <p className="truncate text-xs font-bold uppercase tracking-widest text-white">{track!.title}</p>
-                  <p className="truncate text-[10px] font-mono uppercase tracking-widest text-neo-cyan">{track!.artist}</p>
-                  <p className="text-[10px] font-mono text-gray-400">{formatDuration(track!.duration)}</p>
+                <div key={track!.id} className="flex items-center gap-2 border border-gray-800 bg-black/40 p-2">
+                  <CoverArt track={track!} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold uppercase tracking-widest text-white">{track!.title}</p>
+                    <p className="truncate text-[10px] font-mono uppercase tracking-widest text-neo-cyan">{track!.artist}</p>
+                    <p className="text-[10px] font-mono text-gray-400">{formatDuration(track!.duration)}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -269,9 +278,12 @@ export function Dashboard() {
         {tracks.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {[...tracks].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3).map((track) => (
-              <button key={track.id} className="text-left border border-gray-800 p-2 rounded hover:border-neo-yellow/50" onClick={() => navigate(`/track/${track.id}`)}>
-                <p className="text-xs font-bold text-white truncate">{track.title}</p>
-                <p className="text-[10px] font-mono text-neo-cyan truncate">{track.artist}</p>
+              <button key={track.id} className="flex items-center gap-2 text-left border border-gray-800 p-2 rounded hover:border-neo-yellow/50" onClick={() => navigate(`/track/${track.id}`)}>
+                <CoverArt track={track} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white truncate">{track.title}</p>
+                  <p className="text-[10px] font-mono text-neo-cyan truncate">{track.artist}</p>
+                </span>
               </button>
             ))}
           </div>

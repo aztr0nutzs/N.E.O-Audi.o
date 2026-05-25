@@ -6,7 +6,6 @@ import {
   ArrowDown,
   ArrowUp,
   Library,
-  ListMusic,
   Play,
   Plus,
   Save,
@@ -18,6 +17,7 @@ import { usePlayerStore } from '../../store/usePlayerStore';
 import { useLibraryStore } from '../../store/useLibraryStore';
 import { formatDuration, cn } from '../../lib/utils';
 import { Track } from '../../types';
+import { CoverArt } from '../media/CoverArt';
 
 interface QueuePanelProps {
   open?: boolean;
@@ -274,9 +274,7 @@ function TrackRow({
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center border bg-black', active ? 'border-neo-cyan text-neo-cyan' : 'border-neo-magenta/60 text-neo-magenta')}>
-          <ListMusic className="h-5 w-5 drop-shadow-[0_0_5px_currentColor]" />
-        </div>
+        <CoverArt track={track} size="sm" active={active} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold uppercase tracking-widest text-white">{track.title}</div>
           <div className="truncate font-mono text-[10px] uppercase tracking-widest text-gray-400">{track.artist}</div>
