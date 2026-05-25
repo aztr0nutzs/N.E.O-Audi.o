@@ -3,15 +3,17 @@ import React from 'react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { ReactorCoreVisual } from '../components/ui/ReactorCoreVisual';
-import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Volume2, Network, Sliders, AlertTriangle } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Volume2, Sliders, AlertTriangle, ListMusic } from 'lucide-react';
 import { formatDuration } from '../lib/utils';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { NavLink } from 'react-router-dom';
+import { QueuePanel } from '../components/player/QueuePanel';
 
 export function Player() {
   const { currentTrackId, isPlaying, pause, resume, next, previous, progress, volume, setVolume, repeat, toggleRepeat, shuffle, toggleShuffle, seekTo, analyserNode, error, duration: audioDuration, playbackSpeed, setSpeed } = usePlayerStore();
   const tracks = useLibraryStore(state => state.tracks);
+  const [queueOpen, setQueueOpen] = useState(false);
   
   const track = tracks.find(t => t.id === currentTrackId);
   const duration = audioDuration || track?.duration || 0;
@@ -52,7 +54,16 @@ export function Player() {
         <div className="hud-panel w-full max-w-sm aspect-square flex flex-col items-center justify-center border-gray-800">
            <ReactorCoreVisual className="w-1/2 h-1/2 opacity-20" intensity="low" />
            <p className="mt-8 font-mono text-sm tracking-widest text-gray-600">AWAITING SIGNAL</p>
+           <button
+             type="button"
+             onClick={() => setQueueOpen(true)}
+             className="mt-6 flex items-center gap-2 border border-neo-cyan/40 bg-black px-4 py-2 text-xs font-bold uppercase tracking-widest text-neo-cyan hover:bg-neo-cyan/10"
+           >
+             <ListMusic className="w-4 h-4" />
+             Queue / Up Next
+           </button>
         </div>
+        <QueuePanel mode="drawer" open={queueOpen} onClose={() => setQueueOpen(false)} />
       </div>
     );
   }
@@ -198,8 +209,10 @@ export function Player() {
               color="lime" 
             />
             <ActionBlock icon={<Sliders className="text-neo-magenta"/>} label="EQUALIZER" color="magenta" to="/equalizer" />
+            <ActionBlock icon={<ListMusic className="text-neo-cyan"/>} label="QUEUE" color="cyan" onClick={() => setQueueOpen(true)} />
          </div>
       </div>
+      <QueuePanel mode="drawer" open={queueOpen} onClose={() => setQueueOpen(false)} />
       
     </div>
   );

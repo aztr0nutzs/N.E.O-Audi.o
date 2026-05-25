@@ -1,6 +1,9 @@
 import { create } from 'zustand';
-import { Track } from '../types';
-import { useLibraryStore } from './useLibraryStore';
+export interface QueueSnapshot {
+  currentTrackId: string | null;
+  queue: string[];
+  history: string[];
+}
 
 interface PlayerState {
   currentTrackId: string | null;
@@ -19,8 +22,10 @@ interface PlayerState {
   analyserNode: AnalyserNode | null;
   
   playTrack: (trackId: string, queue?: string[]) => void;
+  setQueue: (trackIds: string[], startTrackId?: string) => void;
   pause: () => void;
   resume: () => void;
+  stop: () => void;
   next: () => void;
   previous: () => void;
   setVolume: (v: number) => void;
@@ -30,11 +35,21 @@ interface PlayerState {
   toggleRepeat: () => void;
   setSpeed: (s: number) => void;
   addToQueue: (trackId: string) => void;
+  addManyToQueue: (trackIds: string[]) => void;
+  removeFromQueue: (trackId: string) => void;
+  moveQueueItem: (fromIndex: number, toIndex: number) => void;
+  clearQueue: () => void;
+  playQueueFromIndex: (index: number) => void;
+  shuffleQueue: () => void;
+  saveQueueSnapshot: () => QueueSnapshot;
+  clearHistory: () => void;
   seekTo: (progress: number) => void;
   clearSeekRequest: () => void;
   setError: (e: string | null) => void;
   setAnalyserNode: (node: AnalyserNode) => void;
 }
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrackId: null,
@@ -54,7 +69,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   playTrack: (trackId, newQueue) => {
     set((state) => {
-      const q = newQueue || state.queue;
+      const q = newQueue && newQueue.length > 0 ? newQueue : (state.queue.length > 0 ? state.queue : [trackId]);
       const index = q.indexOf(trackId);
       return {
         history: state.currentTrackId ? [...state.history, state.currentTrackId] : state.history,
@@ -69,8 +84,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
   },
 
+  setQueue: (trackIds, startTrackId) => {
+    const nextQueue = [...trackIds];
+    set((state) => {
+      const requestedTrack = startTrackId && nextQueue.includes(startTrackId) ? startTrackId : null;
+      const currentInQueue = state.currentTrackId ? nextQueue.indexOf(state.currentTrackId) : -1;
+
+      if (requestedTrack) {
+        return {
+          history: state.currentTrackId ? [...state.history, state.currentTrackId] : state.history,
+          currentTrackId: requestedTrack,
+          queue: nextQueue,
+          queueIndex: nextQueue.indexOf(requestedTrack),
+          isPlaying: true,
+          progress: 0,
+          seekRequest: null,
+          error: null,
+        };
+      }
+
+      return {
+        queue: nextQueue,
+        queueIndex: currentInQueue !== -1 ? currentInQueue : 0,
+      };
+    });
+  },
+
   pause: () => set({ isPlaying: false }),
   resume: () => set({ isPlaying: true, error: null }),
+  stop: () => set({ isPlaying: false, progress: 0, seekRequest: null, error: null }),
 
   next: () => {
     const { queue, queueIndex, currentTrackId, repeat, shuffle } = get();
@@ -156,6 +198,99 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setSpeed: (playbackSpeed) => set({ playbackSpeed }),
   
   addToQueue: (trackId) => set((state) => ({ queue: [...state.queue, trackId] })),
+
+  addManyToQueue: (trackIds) => {
+    if (trackIds.length === 0) return;
+    set((state) => ({ queue: [...state.queue, ...trackIds] }));
+  },
+
+  removeFromQueue: (trackId) => {
+    set((state) => {
+      if (trackId === state.currentTrackId) {
+        return state;
+      }
+
+      const removedBeforeCursor = state.queue
+        .slice(0, state.queueIndex)
+        .filter(id => id === trackId).length;
+      const queue = state.queue.filter(id => id !== trackId);
+      const queueIndex = queue.length === 0 ? 0 : clamp(state.queueIndex - removedBeforeCursor, 0, queue.length - 1);
+
+      return { queue, queueIndex };
+    });
+  },
+
+  moveQueueItem: (fromIndex, toIndex) => {
+    set((state) => {
+      if (state.queue.length === 0) return state;
+      const from = clamp(Math.trunc(fromIndex), 0, state.queue.length - 1);
+      const to = clamp(Math.trunc(toIndex), 0, state.queue.length - 1);
+      if (from === to) return state;
+
+      const queue = [...state.queue];
+      const [item] = queue.splice(from, 1);
+      queue.splice(to, 0, item);
+      const currentIndex = state.currentTrackId ? queue.indexOf(state.currentTrackId) : -1;
+
+      return {
+        queue,
+        queueIndex: currentIndex !== -1 ? currentIndex : clamp(state.queueIndex, 0, queue.length - 1),
+      };
+    });
+  },
+
+  clearQueue: () => {
+    set((state) => ({
+      queue: state.currentTrackId ? [state.currentTrackId] : [],
+      queueIndex: 0,
+    }));
+  },
+
+  playQueueFromIndex: (index) => {
+    const { queue } = get();
+    if (queue.length === 0) return;
+    const queueIndex = clamp(Math.trunc(index), 0, queue.length - 1);
+    const trackId = queue[queueIndex];
+    set((state) => ({
+      history: state.currentTrackId ? [...state.history, state.currentTrackId] : state.history,
+      currentTrackId: trackId,
+      queueIndex,
+      isPlaying: true,
+      progress: 0,
+      seekRequest: null,
+      error: null,
+    }));
+  },
+
+  shuffleQueue: () => {
+    set((state) => {
+      const currentId = state.currentTrackId;
+      const currentIndex = currentId ? state.queue.indexOf(currentId) : state.queueIndex;
+      const locked = currentId && currentIndex !== -1 ? state.queue.slice(0, currentIndex + 1) : [];
+      const upcoming = currentId && currentIndex !== -1 ? state.queue.slice(currentIndex + 1) : [...state.queue];
+
+      for (let i = upcoming.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [upcoming[i], upcoming[j]] = [upcoming[j], upcoming[i]];
+      }
+
+      return {
+        queue: [...locked, ...upcoming],
+        queueIndex: currentId ? locked.length - 1 : 0,
+      };
+    });
+  },
+
+  saveQueueSnapshot: () => {
+    const { currentTrackId, queue, history } = get();
+    return {
+      currentTrackId,
+      queue: [...queue],
+      history: [...history],
+    };
+  },
+
+  clearHistory: () => set({ history: [] }),
 
   seekTo: (progress) => set({ seekRequest: progress, progress }),
   clearSeekRequest: () => set({ seekRequest: null }),

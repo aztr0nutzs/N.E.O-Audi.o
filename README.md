@@ -61,6 +61,14 @@ When a job fails, `errorCode` is one of:
 - `verification_failed` — output file fails ffprobe / size / extension checks
 - `cancelled` — user cancelled the job
 
+## Queue / Up Next
+
+- Real playback queue with the current signal, Up Next list, and playback history.
+- Add tracks from the Library, add whole visible groups, remove upcoming tracks, clear the queue, and clear history.
+- Reorder upcoming tracks with accessible move up/down controls and shuffle the remaining queue.
+- Open Queue / Up Next from the Player, Dashboard preview, and MiniPlayer queue control.
+- Save the current queue snapshot as a playlist when the queue has tracks.
+
 ## Tests
 
 - `npm run lint` — `tsc --noEmit`

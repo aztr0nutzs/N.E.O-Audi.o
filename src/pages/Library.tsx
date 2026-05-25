@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
-import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X } from 'lucide-react';
+import { Search, Play, Trash2, Download, Clock, Activity, Smile, Music, Shield, ChevronLeft, MoreVertical, Folder, Edit3 as EditIcon, Plus, X, ListPlus } from 'lucide-react';
 import { formatDuration } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { Track, LOSSLESS_FORMATS } from '../types';
@@ -37,6 +37,8 @@ export function Library() {
   const playlists = useLibraryStore(state => state.playlists);
   const removeTrack = useLibraryStore(state => state.removeTrack);
   const playTrack = usePlayerStore(state => state.playTrack);
+  const addToQueue = usePlayerStore(state => state.addToQueue);
+  const addManyToQueue = usePlayerStore(state => state.addManyToQueue);
   const currentTrackId = usePlayerStore(state => state.currentTrackId);
   const isPlaying = usePlayerStore(state => state.isPlaying);
   
@@ -260,15 +262,27 @@ export function Library() {
          ) : (
            <div className="w-full flex-1 flex flex-col h-[550px]">
               <div className="flex justify-center mb-6 z-20">
-                 <div className="relative w-full max-w-sm hex-btn bg-[#050508] border-2 border-neo-cyan p-2 px-8 flex items-center shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-                    <Search className="w-5 h-5 text-neo-cyan mr-3" />
-                    <input 
-                      type="text"
-                      placeholder={`SEARCH ${view.replace('_', ' ').toUpperCase()}...`}
-                      className="bg-transparent border-none text-white text-md font-bold tracking-widest uppercase italic placeholder:text-neo-cyan/50 focus:outline-none w-full"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
+                 <div className="flex w-full max-w-xl flex-col items-center gap-3 sm:flex-row">
+                    <div className="relative w-full max-w-sm hex-btn bg-[#050508] border-2 border-neo-cyan p-2 px-8 flex items-center shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                       <Search className="w-5 h-5 text-neo-cyan mr-3" />
+                       <input 
+                         type="text"
+                         placeholder={`SEARCH ${view.replace('_', ' ').toUpperCase()}...`}
+                         className="bg-transparent border-none text-white text-md font-bold tracking-widest uppercase italic placeholder:text-neo-cyan/50 focus:outline-none w-full"
+                         value={search}
+                         onChange={(e) => setSearch(e.target.value)}
+                       />
+                    </div>
+                    {displayedTracks.length > 0 && view !== 'mood_packs' && view !== 'playlists' && (
+                       <button
+                         type="button"
+                         onClick={() => addManyToQueue(displayedTracks.map(track => track.id))}
+                         className="flex items-center gap-2 border border-neo-lime/50 bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-neo-lime hover:bg-neo-lime/10"
+                       >
+                         <ListPlus className="w-4 h-4" />
+                         Add All
+                       </button>
+                    )}
                  </div>
               </div>
               
@@ -390,6 +404,15 @@ export function Library() {
                                 <div className="flex gap-2 shrink-0">
                                    <button onClick={() => playTrack(track.id, displayedTracks.map(t => t.id))} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-cyan transition-colors">
                                       <Play className={cn("w-4 h-4", isCurrent && isPlaying ? "text-neo-lime" : "text-white")} />
+                                   </button>
+                                   <button
+                                      type="button"
+                                      aria-label={`Add ${track.title} to queue`}
+                                      title="Add to Queue"
+                                      onClick={(e) => { e.stopPropagation(); addToQueue(track.id); }}
+                                      className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-lime transition-colors"
+                                   >
+                                      <ListPlus className="w-4 h-4 text-gray-400 group-hover:text-neo-lime hover:text-neo-lime" />
                                    </button>
                                    <button onClick={(e) => { e.stopPropagation(); setAddingToPlaylistTrack(track.id === addingToPlaylistTrack ? null : track.id); }} className="p-2 bg-gray-900 border border-gray-700 rounded hover:border-neo-magenta transition-colors">
                                       <Plus className="w-4 h-4 text-gray-400 group-hover:text-neo-magenta hover:text-neo-magenta" />

@@ -7,15 +7,25 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useNavigate } from 'react-router-dom';
 import { PlayCircle, Download, Upload, ListMusic, HardDrive, Zap, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { formatDuration } from '../lib/utils';
 
 export function Dashboard() {
   const tracks = useLibraryStore(state => state.tracks);
   const jobs = useDownloadStore(state => state.jobs);
   const currentTrackId = usePlayerStore(state => state.currentTrackId);
+  const queue = usePlayerStore(state => state.queue);
+  const queueIndex = usePlayerStore(state => state.queueIndex);
   const navigate = useNavigate();
 
   const totalSize = tracks.reduce((acc, t) => acc + (t.size || 0), 0);
   const formatSize = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  const trackMap = new Map(tracks.map(track => [track.id, track]));
+  const currentIndex = currentTrackId ? queue.indexOf(currentTrackId) : -1;
+  const activeQueueIndex = currentIndex !== -1 ? currentIndex : queueIndex;
+  const upNext = (currentTrackId ? queue.slice(activeQueueIndex + 1) : queue)
+    .map(id => trackMap.get(id))
+    .filter(Boolean)
+    .slice(0, 3);
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
@@ -67,6 +77,39 @@ export function Dashboard() {
         <ActionHex text="UPLOAD" icon={<Upload />} color="lime" onClick={() => navigate('/upload')} />
         <ActionHex text="LIBRARY" icon={<ListMusic />} color="magenta" onClick={() => navigate('/library')} />
         <ActionHex text="PLAYER" icon={<PlayCircle />} color="yellow" onClick={() => navigate('/player')} />
+      </div>
+
+      <div className="hud-panel p-5 border-neo-magenta/30 text-neo-magenta">
+         <div className="mb-4 flex items-center justify-between gap-4">
+           <div>
+             <h3 className="font-bold uppercase tracking-widest text-white">UP NEXT</h3>
+             <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Queue preview</p>
+           </div>
+           <button
+             type="button"
+             onClick={() => navigate('/player')}
+             className="border border-neo-magenta/50 bg-black px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-neo-magenta hover:bg-neo-magenta/10"
+           >
+             Open Queue
+           </button>
+         </div>
+         {upNext.length > 0 ? (
+           <div className="space-y-2">
+             {upNext.map(track => (
+               <div key={track!.id} className="flex items-center justify-between gap-3 border border-gray-800 bg-black/50 p-3">
+                 <div className="min-w-0">
+                   <div className="truncate text-sm font-bold uppercase tracking-widest text-white">{track!.title}</div>
+                   <div className="truncate font-mono text-[10px] uppercase tracking-widest text-neo-cyan">{track!.artist}</div>
+                 </div>
+                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-gray-400">{formatDuration(track!.duration)}</span>
+               </div>
+             ))}
+           </div>
+         ) : (
+           <div className="border border-dashed border-gray-800 bg-black/40 p-4 text-center font-mono text-xs uppercase tracking-widest text-gray-500">
+             Queue empty / no upcoming signals
+           </div>
+         )}
       </div>
 
       <div className="mt-8">
