@@ -48,6 +48,8 @@ vi.mock('../src/lib/utils', () => ({
   formatDuration: () => '00:00',
 }));
 
+vi.mock('../src/store/useAnalyzerStore', () => ({ useAnalyzerStore: (sel: any) => sel({ setAnalyzerOpen: vi.fn() }) }));
+
 vi.mock('motion/react', () => ({
   motion: { div: (props: any) => <div {...props} /> },
 }));
@@ -98,5 +100,6 @@ describe('Player smoke', () => {
     expect(screen.getByRole('button', { name: /open downloader/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open settings/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open track lab/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open live analyzer/i })).toBeInTheDocument();
   });
 });

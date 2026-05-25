@@ -22,11 +22,13 @@ const playerRef: any = {
 const libraryRef: any = { current: { tracks: [], playlists: [], loadLibrary: vi.fn() } };
 const downloadRef: any = { current: { jobs: [], loadJobs: vi.fn() } };
 const eqRef: any = { current: { isOn: true, activePreset: 'Flat', bandValues: [0, 0, 0], spatial: 0 } };
+const analyzerRef: any = { current: { setAnalyzerOpen: vi.fn() } };
 
 vi.mock('../src/store/usePlayerStore', () => ({ usePlayerStore: () => playerRef.current }));
 vi.mock('../src/store/useLibraryStore', () => ({ useLibraryStore: () => libraryRef.current }));
 vi.mock('../src/store/useDownloadStore', () => ({ useDownloadStore: () => downloadRef.current }));
 vi.mock('../src/store/useEqualizerStore', () => ({ useEqualizerStore: () => eqRef.current }));
+vi.mock('../src/store/useAnalyzerStore', () => ({ useAnalyzerStore: () => analyzerRef.current }));
 
 describe('Dashboard command center', () => {
   beforeEach(() => {
@@ -80,5 +82,6 @@ describe('Dashboard command center', () => {
     expect(screen.getAllByRole('button', { name: /open library/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /open player/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /open equalizer/i }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /live analyzer/i })).toBeInTheDocument();
   });
 });

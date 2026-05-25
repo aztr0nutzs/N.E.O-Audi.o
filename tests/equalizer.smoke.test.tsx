@@ -15,6 +15,7 @@ vi.mock('../src/store/usePlayerStore', () => ({ usePlayerStore: () => ({ isPlayi
 vi.mock('../src/store/useLibraryStore', () => ({ useLibraryStore: (sel: any) => sel({ tracks: [] }) }));
 vi.mock('../src/lib/utils', () => ({ cn: (...a: string[]) => a.filter(Boolean).join(' '), formatDuration: () => '00:00' }));
 vi.mock('motion/react', () => ({ motion: { div: (props: any) => <div {...props} /> } }));
+vi.mock('../src/store/useAnalyzerStore', () => ({ useAnalyzerStore: (sel: any) => sel({ setAnalyzerOpen: vi.fn() }) }));
 
 describe('Equalizer smoke', () => {
   it('renders 10 slider bands', async () => {
@@ -22,5 +23,6 @@ describe('Equalizer smoke', () => {
     render(<Equalizer />);
     const sliders = screen.getAllByRole('slider');
     expect(sliders.length).toBeGreaterThanOrEqual(10);
+    expect(screen.getByText(/open analyzer/i)).toBeInTheDocument();
   });
 });

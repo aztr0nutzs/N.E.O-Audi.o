@@ -7,6 +7,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useDownloadStore } from '../store/useDownloadStore';
 import { useEqualizerStore } from '../store/useEqualizerStore';
+import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { cn, formatDuration } from '../lib/utils';
 
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'analyzing', 'downloading', 'converting', 'indexing']);
@@ -29,6 +30,7 @@ function deterministicBars(seed: string, count = 32) {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
 
   const {
     currentTrackId,
@@ -218,6 +220,7 @@ export function Dashboard() {
           <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Library" label="Open Library" size="sm" onClick={() => navigate('/library')} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.play} alt="Player" label="Open Player" size="sm" onClick={() => navigate('/player')} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.equalizer} alt="Equalizer" label="Open Equalizer" size="sm" onClick={() => navigate('/equalizer')} />
+          <NeoImageButton src={NEO_AUDIO_BUTTONS.eq} alt="Analyzer" label="Live Analyzer" size="sm" onClick={() => setAnalyzerOpen(true)} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.settings} alt="Settings" label="Open Settings" size="sm" onClick={() => navigate('/settings')} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.download} alt="Upload" label="Upload Track" size="sm" onClick={() => navigate('/upload')} />
           <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Create Playlist" label="Create Playlist (Coming soon)" size="sm" disabled />

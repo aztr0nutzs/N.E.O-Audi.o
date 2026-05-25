@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 
 import { AudioDriver } from './AudioDriver';
+import { AudioAnalyzerOverlay } from '../audio/AudioAnalyzerOverlay';
 
 export function AppShell() {
   const loadSettings = useAppStore(state => state.loadSettings);
@@ -26,6 +27,7 @@ export function AppShell() {
          </main>
       </div>
       <BottomDock />
+      <AudioAnalyzerOverlay />
       <Toaster 
         position="top-right" 
         toastOptions={{
