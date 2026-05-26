@@ -120,3 +120,34 @@ export interface AppSettings {
   autoFillMetadata: boolean;
   confirmDelete: boolean;
 }
+
+
+export type NeoEnhancerMode =
+  | 'off'
+  | 'cleanBoost'
+  | 'neoDps'
+  | 'spatial3d'
+  | 'bassReactor'
+  | 'vocalClarity'
+  | 'nightMode';
+
+export type NeoOutputProfile =
+  | 'headphones'
+  | 'phoneSpeaker'
+  | 'bluetoothSpeaker'
+  | 'carAudio'
+  | 'earbuds'
+  | 'outdoor';
+
+export type NeoEnhancerSettings = {
+  enabled: boolean;
+  mode: NeoEnhancerMode;
+  outputProfile: NeoOutputProfile;
+  intensity: number;
+  bass: number;
+  clarity: number;
+  spatial: number;
+  loudness: number;
+  limiter: boolean;
+  safeGain: boolean;
+};

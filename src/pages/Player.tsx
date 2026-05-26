@@ -15,6 +15,7 @@ import { MetadataLab } from '../components/library/MetadataLab';
 import { QueuePanel } from '../components/player/QueuePanel';
 import { CoverArt } from '../components/media/CoverArt';
 import { useSignalChainStore } from '../store/useSignalChainStore';
+import { useAudioEnhancerStore } from '../store/useAudioEnhancerStore';
 
 export function Player() {
   const {
@@ -28,6 +29,7 @@ export function Player() {
   const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
   const signalModules = useSignalChainStore(state => state.modules);
   const clippingWarning = useSignalChainStore(state => state.clippingWarning);
+  const enhancer = useAudioEnhancerStore(state => state.settings);
 
   const track = tracks.find(t => t.id === currentTrackId);
   const duration = audioDuration || track?.duration || 0;
@@ -169,6 +171,7 @@ export function Player() {
             <span>LVL 49.3KHZ</span>
          </div>
       </div>
+      <div className="w-full text-[10px] font-mono uppercase tracking-widest text-gray-300 border border-gray-800 bg-black/40 p-2">Enhancer: {enhancer.enabled ? 'Active' : 'Off'} · Mode: {enhancer.mode} · Output: {enhancer.outputProfile} · Limiter: {enhancer.limiter ? 'ON' : 'OFF'} <button className="ml-2 text-neo-cyan" onClick={() => navigate('/equalizer')}>Open Equalizer / Enhancer</button></div>
 
       {/* Main Reactor Vector Graphic Visualizer */}
       <div className="relative w-full aspect-square flex items-center justify-center pointer-events-none mt-4">

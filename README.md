@@ -302,3 +302,11 @@ The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 - Every downloader job now includes rich diagnostics: phase, progress, status, speed/ETA (when available), output metadata, and retry/cancel/remove actions.
 - Failed downloads can be inspected in a neon terminal-style diagnostics drawer that exposes error code/message and recent log lines.
 - Job logs are capped to prevent unbounded memory/storage growth.
+
+## N.E.O Audio Enhancer
+
+N.E.O Audio Enhancer adds N.E.O-branded premium enhancement modes: Clean Boost, N.E.O DPS Mode, 3D Spatial Field, Bass Reactor, Vocal Clarity, and Night Drive Safe Mode.
+
+It uses the app's Web Audio signal chain with filters, compression, limiting, gain staging, and output profiles.
+
+This feature does not include or claim licensed AM3D/Bongiovi DPS/JetAudio technology. Limiter and Safe Gain reduce clipping risk during high-boost settings.

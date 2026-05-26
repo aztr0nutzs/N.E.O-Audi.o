@@ -4,6 +4,8 @@ import { useLibraryStore } from '../../store/useLibraryStore';
 import { useEqualizerStore, BANDS } from '../../store/useEqualizerStore';
 import { useSignalChainStore } from '../../store/useSignalChainStore';
 import toast from 'react-hot-toast';
+import { useAudioEnhancerStore } from '../../store/useAudioEnhancerStore';
+import { applyEnhancerProfile } from '../../lib/neoEnhancerPresets';
 
 export function AudioDriver() {
   const { currentTrackId, isPlaying, next, setProgress, setDuration, volume, seekRequest, clearSeekRequest, playbackSpeed, setError, setAnalyserNode } = usePlayerStore();
@@ -11,11 +13,13 @@ export function AudioDriver() {
   
   const { bandValues, isOn, spatial } = useEqualizerStore();
   const { modules, outputGain, clippingProtection, setEstimatedPeak } = useSignalChainStore();
+  const enhancerSettings = useAudioEnhancerStore(state => state.settings);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaElementSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const filtersRef = useRef<BiquadFilterNode[]>([]);
+  const filtersRef = useRef<BiquadFilterNode[]>([, enhancerSettings]);
+  const preGainRef = useRef<GainNode | null>(null);
   const bassFilterRef = useRef<BiquadFilterNode | null>(null);
   const vocalFilterRef = useRef<BiquadFilterNode | null>(null);
   const nightFilterRef = useRef<BiquadFilterNode | null>(null);
@@ -64,6 +68,10 @@ export function AudioDriver() {
       const panner = audioCtx.createStereoPanner();
       pannerRef.current = panner;
 
+      const preGain = audioCtx.createGain();
+      preGain.gain.value = 1;
+      preGainRef.current = preGain;
+
       const bassFilter = audioCtx.createBiquadFilter();
       bassFilter.type = 'lowshelf';
       bassFilter.frequency.value = 100;
@@ -94,6 +102,8 @@ export function AudioDriver() {
 
       // Connect: source -> EQ -> bass -> vocal -> night -> compressor -> spatial -> limiter -> output gain -> analyser -> destination
       let currentOutput: AudioNode = source;
+      currentOutput.connect(preGain);
+      currentOutput = preGain;
       filters.forEach(filter => {
          currentOutput.connect(filter);
          currentOutput = filter;
@@ -122,6 +132,7 @@ export function AudioDriver() {
     try {
       mediaElementSourceRef.current?.disconnect();
       filtersRef.current.forEach(filter => filter.disconnect());
+      preGainRef.current?.disconnect();
       bassFilterRef.current?.disconnect();
       vocalFilterRef.current?.disconnect();
       nightFilterRef.current?.disconnect();
@@ -196,9 +207,25 @@ export function AudioDriver() {
           limiter.release.setTargetAtTime(0.06 + intensity * 0.08, audioCtx.currentTime, 0.08);
        }
 
+       const enhancer = applyEnhancerProfile(enhancerSettings);
+       const enhancerActive = enhancerSettings.enabled && enhancerSettings.mode !== 'off';
+
+       if (preGainRef.current) {
+         preGainRef.current.gain.setTargetAtTime(enhancerActive ? enhancer.preampGain : 1, audioCtx.currentTime, 0.09);
+       }
+       if (bassFilterRef.current) {
+         bassFilterRef.current.frequency.setTargetAtTime(enhancer.bassFreq, audioCtx.currentTime, 0.08);
+       }
+       if (vocalFilterRef.current) {
+         vocalFilterRef.current.frequency.setTargetAtTime(enhancer.presenceFreq, audioCtx.currentTime, 0.08);
+       }
+       if (nightFilterRef.current) {
+         nightFilterRef.current.frequency.setTargetAtTime(enhancer.airFreq, audioCtx.currentTime, 0.08);
+       }
        if (outputGainRef.current) {
           const nightTrim = modules.night.enabled ? 1 - modules.night.intensity * 0.12 : 1;
-          outputGainRef.current.gain.setTargetAtTime(outputGain * nightTrim, audioCtx.currentTime, 0.08);
+          const enhancerOut = enhancerActive ? enhancer.outputGain : 1;
+          outputGainRef.current.gain.setTargetAtTime(outputGain * nightTrim * enhancerOut, audioCtx.currentTime, 0.08);
        }
     }
   }, [bandValues, isOn, spatial, modules, outputGain, clippingProtection]);

@@ -10,6 +10,7 @@ import { NeoAudioHeader } from '../components/layout/NeoAudioHeader';
 import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { EqCurvePreview } from '../components/equalizer/EqCurvePreview';
 import { SignalChainPanel } from '../components/audio/SignalChainPanel';
+import { NeoAudioEnhancerPanel } from '../components/audio/NeoAudioEnhancerPanel';
 
 const PRESET_CATEGORIES: Array<{ id: EqPresetCategory; label: string }> = [
   { id: 'core', label: 'Core' },
@@ -343,6 +344,7 @@ export function Equalizer() {
           AUDIO SIGNAL CHAIN
         </h2>
         <SignalChainPanel />
+      <NeoAudioEnhancerPanel />
       </section>
 
       {/* Main Layout containing Sliders and Reactor */}
