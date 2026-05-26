@@ -39,30 +39,41 @@ A cyberpunk-themed audio downloader, library, player, uploader, and equalizer in
 - **Player & Equalizer:** real-time playback, 10-band EQ with presets and spatial control, visualizer synced to the audio reactor.
 - **Downloader Engine:** real background download/extraction queue powered by **yt-dlp** (via `youtube-dl-exec`), **ffmpeg** (via `@ffmpeg-installer/ffmpeg`), and **ffprobe** (via `ffprobe-static`). Queued jobs are analyzed, extracted, converted to the selected format/bitrate, verified, and indexed into the Library. Real-time logs, progress, cancel, retry, and remove are all wired.
 
-## Visual System
+<br />
 
 <div align="center">
-  <table>
-    <tr>
-      <td align="center" width="50%">
-        <img src="./public/assets/neo_audio/neo_audio_header3.png" alt="N.E.O Audio Lab header variant used by dashboard, downloader, uploader, and settings" width="100%" />
-        <br />
-        <sub>Header 3: dashboard, downloader, uploader, settings</sub>
-      </td>
-      <td align="center" width="50%">
-        <img src="./public/assets/neo_audio/neo_audio_header4.png" alt="N.E.O Audio Lab header variant used by player, library, equalizer, and track detail" width="100%" />
-        <br />
-        <sub>Header 4: player, library, equalizer, track detail</sub>
-      </td>
-    </tr>
-  </table>
+  <img src="./public/assets/neo_audio/neo_audio_header3.png" alt="N.E.O Audio Lab dashboard and utility screen header" width="760" />
+  <br />
+  <sub>Header 3 anchors Dashboard, Downloader, Uploader, and Settings.</sub>
 </div>
+
+<br />
+
+## Visual System
+
+N.E.O Audio Lab uses deterministic branded artwork instead of random README imagery. Header variants are assigned by screen type, the global background sits behind the app shell, and the startup artwork is used only for the in-app boot sequence.
+
+<br />
+
+<div align="center">
+  <img src="./public/assets/neo_audio/neo_audio_header4.png" alt="N.E.O Audio Lab player and audio workspace header" width="680" />
+  <br />
+  <sub>Header 4 anchors Player, Library, Equalizer, and Track Detail.</sub>
+</div>
+
+<br />
+
+The main app surface uses the neon alley background as a stable default layer behind the dashboard, downloader, player, library, equalizer, and settings screens.
+
+<br />
 
 <div align="center">
   <img src="./public/assets/neo_audio/neo_audio_backround.png" alt="N.E.O Audio Lab global neon alley background" width="520" />
   <br />
   <sub>Global app background used behind the main shell and screens.</sub>
 </div>
+
+<br />
 
 ## Tech Stack
 
@@ -139,22 +150,29 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 
 ## Startup Boot Sequence
 
+The startup sequence is intentionally short and branded: it begins with the initialization artwork, transitions into the hero reveal, then fades into the existing app shell without replaying during route navigation.
+
+<br />
+
 <div align="center">
-  <table>
-    <tr>
-      <td align="center" width="50%">
-        <img src="./public/assets/neo_audio/neo_audio_boot_initializing.png" alt="N.E.O Audio Lab system initializing boot frame" width="100%" />
-        <br />
-        <sub>Stage 1: system initializing</sub>
-      </td>
-      <td align="center" width="50%">
-        <img src="./public/assets/neo_audio/neo_audio_boot.png" alt="N.E.O Audio Lab final boot hero frame" width="72%" />
-        <br />
-        <sub>Final frame: branded hero reveal</sub>
-      </td>
-    </tr>
-  </table>
+  <img src="./public/assets/neo_audio/neo_audio_boot_initializing.png" alt="N.E.O Audio Lab system initializing boot frame" width="760" />
+  <br />
+  <sub>Stage 1: system initializing.</sub>
 </div>
+
+<br />
+
+After initialization, the app presents the final hero frame briefly before handing control to the dashboard.
+
+<br />
+
+<div align="center">
+  <img src="./public/assets/neo_audio/neo_audio_boot.png" alt="N.E.O Audio Lab final boot hero frame" width="520" />
+  <br />
+  <sub>Final frame: branded hero reveal.</sub>
+</div>
+
+<br />
 
 - Uses branded N.E.O startup artwork from `public/assets/neo_audio/neo_audio_boot_initializing.png` and `public/assets/neo_audio/neo_audio_boot.png`.
 - Shows a short initialization-to-hero startup flow before fading into the app shell.
