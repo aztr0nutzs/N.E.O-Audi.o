@@ -14,7 +14,8 @@ describe('NeoAudioHeader', () => {
     expect(header).toHaveAttribute('data-variant', 'header3');
     const img = header.querySelector('img');
     expect(img).toHaveClass('neo-audio-header-image');
-    expect(img).toHaveClass('h-full');
+    expect(img).toHaveClass('neo-audio-header-image--header4');
+    expect(img).toHaveClass('neo-audio-header-image--header3');
     expect(img?.getAttribute('src')).toContain('neo_audio_header3.png');
   });
 

@@ -1,6 +1,5 @@
 import { NEO_AUDIO_HEADER_3, NEO_AUDIO_HEADER_4 } from '../../lib/neoAudioAssets';
 import { cn } from '../../lib/utils';
-import type { CSSProperties } from 'react';
 
 export type NeoAudioHeaderVariant = 'header3' | 'header4';
 
@@ -16,43 +15,24 @@ const HEADER_VARIANTS: Record<NeoAudioHeaderVariant, string> = {
   header4: NEO_AUDIO_HEADER_4,
 };
 
-export function NeoAudioHeader({
-  className,
-  alt = 'N.E.O Audio Lab',
-  variant = 'header3',
-  imageSrc,
-}: NeoAudioHeaderProps) {
+const VARIANT_FRAME_CLASS: Record<NeoAudioHeaderVariant, string> = {
+  header3: 'neo-audio-header-image--header3',
+  header4: 'neo-audio-header-image--header4',
+};
+
+export function NeoAudioHeader({ className, alt = 'N.E.O Audio Lab', variant = 'header3', imageSrc }: NeoAudioHeaderProps) {
   const src = imageSrc ?? HEADER_VARIANTS[variant];
-  const headerStyle = {
-    '--neo-audio-header-image': `url("${src}")`,
-  } as CSSProperties;
 
   return (
     <div
-      className={cn(
-        'neo-audio-header neo-header-plate relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-neo-cyan/30 bg-black/35 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
-        className
-      )}
+      className={cn('neo-audio-header neo-header-plate relative w-full overflow-hidden rounded-xl border border-neo-cyan/30 bg-black/35 shadow-[0_0_20px_rgba(0,240,255,0.15)]', className)}
       data-testid="neo-audio-header"
       data-variant={imageSrc ? 'custom' : variant}
       role="img"
       aria-label={alt}
-      style={headerStyle}
     >
-      <img
-        src={src}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="neo-audio-header-image pointer-events-none absolute inset-0 h-full w-full select-none opacity-0"
-      />
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(3,3,5,0.55) 100%)',
-        }}
-      />
+      <img src={src} alt="" aria-hidden="true" draggable={false} className={cn('neo-audio-header-image h-full w-full object-contain', !imageSrc && VARIANT_FRAME_CLASS[variant])} />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#030305]/55" />
     </div>
   );
 }
