@@ -1,37 +1,23 @@
 
 <div align="center">
-  <img src="./neo_audio_ad3.png" alt= width="100%" />
-</div>
-
-<div align="center">
+  <img src="./public/assets/neo_audio/neo_audio_boot.png" alt="N.E.O Audio Lab hero artwork" width="520" />
 
 # N.E.O Audio Lab
 
 <p>
-  <strong>• MP3 Downloader & MP3 Player</strong>
+  <strong>Cyberpunk audio downloader, library, player, queue, analyzer, and equalizer lab.</strong>
 </p>
 
 <p>
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform Android" />
-  <img src="https://img.shields.io/badge/Stack-Next.js%20%7C%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Compose" />
-  <img src="https://img.shields.io/badge/Audio-Offline%20Playback-FF6B6B?style=for-the-badge" alt="Offline Playback" />
+  <img src="https://img.shields.io/badge/Stack-React%20%7C%20Vite%20%7C%20Express-00F0FF?style=for-the-badge&logo=react&logoColor=white" alt="React Vite Express" />
+  <img src="https://img.shields.io/badge/Audio-Playback%20%7C%20EQ%20%7C%20Queue-FF6B6B?style=for-the-badge" alt="Playback EQ Queue" />
   <img src="https://img.shields.io/badge/Status-In%20Progress-F7B731?style=for-the-badge" alt="In Progress" />
 </p>
 
 </div>
 
-
-<div align="center">
-  <img src="./public/images/neo/info/neo_audio_ad2.png" alt= width="100%" />
-</div>
-
-
-
-
-
-
-
-# N.E.O Audio Lab
+## Overview
 
 A cyberpunk-themed audio downloader, library, player, uploader, and equalizer interface built with React, Vite, and Express.
 
@@ -45,13 +31,6 @@ A cyberpunk-themed audio downloader, library, player, uploader, and equalizer in
 - `dist` is intentionally **not** packaged — produce a production build locally with `npm run build`.
 - `uploads/db.json` and `uploads/jobs.json` ship as empty arrays (`[]`); the running server reads/writes them in place.
 
-<div align="center">
-  <img src="./neo_audio_header3.png" alt= width="100%" />
-</div>
-
-<div align="center">
-
-
 ## Capabilities
 
 - **UI shell:** full N.E.O. neon navigation, reactor visuals, armored panels, and custom typography (preserved end-to-end).
@@ -60,12 +39,30 @@ A cyberpunk-themed audio downloader, library, player, uploader, and equalizer in
 - **Player & Equalizer:** real-time playback, 10-band EQ with presets and spatial control, visualizer synced to the audio reactor.
 - **Downloader Engine:** real background download/extraction queue powered by **yt-dlp** (via `youtube-dl-exec`), **ffmpeg** (via `@ffmpeg-installer/ffmpeg`), and **ffprobe** (via `ffprobe-static`). Queued jobs are analyzed, extracted, converted to the selected format/bitrate, verified, and indexed into the Library. Real-time logs, progress, cancel, retry, and remove are all wired.
 
+## Visual System
+
 <div align="center">
-  <img src="./neo_audio_header4.png" alt= width="100%" />
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="./public/assets/neo_audio/neo_audio_header3.png" alt="N.E.O Audio Lab header variant used by dashboard, downloader, uploader, and settings" width="100%" />
+        <br />
+        <sub>Header 3: dashboard, downloader, uploader, settings</sub>
+      </td>
+      <td align="center" width="50%">
+        <img src="./public/assets/neo_audio/neo_audio_header4.png" alt="N.E.O Audio Lab header variant used by player, library, equalizer, and track detail" width="100%" />
+        <br />
+        <sub>Header 4: player, library, equalizer, track detail</sub>
+      </td>
+    </tr>
+  </table>
 </div>
 
 <div align="center">
-
+  <img src="./public/assets/neo_audio/neo_audio_backround.png" alt="N.E.O Audio Lab global neon alley background" width="520" />
+  <br />
+  <sub>Global app background used behind the main shell and screens.</sub>
+</div>
 
 ## Tech Stack
 
@@ -136,10 +133,28 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
   | `settings.png` | Navigate to `/settings` |
 
 - **Bottom dock** uses `public/assets/neo_audio/neo_audio_dock.png` as the visual rail. The dock image is decorative — real overlay `<NavLink>` and `<button>` elements sit on top with their own hit areas (HOME → `/`, CHAT slot disabled, CENTER N → `/player`, GAMES → `/library`, SETTINGS → `/settings`). A compact secondary strip below the dock keeps `/download`, `/upload`, and `/equalizer` reachable so no route is hidden behind dead art.
-- **Headers** use `neo_audio_header1.png` and `neo_audio_header2.png` rotated through `<NeoAudioHeader>` (Dashboard, Downloader, Uploader, Library, Player, Equalizer, Settings).
+- **Headers** use deterministic N.E.O variants through `<NeoAudioHeader>`: `neo_audio_header3.png` for Dashboard, Downloader, Uploader, and Settings; `neo_audio_header4.png` for Player, Library, Equalizer, and Track Detail.
+- **Global background** uses `neo_audio_backround.png` as the default app shell background.
 - **Web/PWA icon** uses `neo_audio_icon.png` as documented above.
 
 ## Startup Boot Sequence
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="./public/assets/neo_audio/neo_audio_boot_initializing.png" alt="N.E.O Audio Lab system initializing boot frame" width="100%" />
+        <br />
+        <sub>Stage 1: system initializing</sub>
+      </td>
+      <td align="center" width="50%">
+        <img src="./public/assets/neo_audio/neo_audio_boot.png" alt="N.E.O Audio Lab final boot hero frame" width="72%" />
+        <br />
+        <sub>Final frame: branded hero reveal</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 - Uses branded N.E.O startup artwork from `public/assets/neo_audio/neo_audio_boot_initializing.png` and `public/assets/neo_audio/neo_audio_boot.png`.
 - Shows a short initialization-to-hero startup flow before fading into the app shell.
