@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NEO_BOOT_HERO, NEO_BOOT_INITIALIZING } from '../../lib/neoAudioAssets';
+import { NEO_AUDIO_HEADER_1, NEO_BOOT_HERO, NEO_BOOT_INITIALIZING } from '../../lib/neoAudioAssets';
 
 const STAGE_INITIALIZING_MS = 1200;
 const STAGE_TRANSITION_MS = 1100;
@@ -28,7 +28,10 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
 
   const activeArtwork = stage === 'initializing' ? NEO_BOOT_INITIALIZING : NEO_BOOT_HERO;
   const activeArtworkFailed = Boolean(failedImages[activeArtwork]);
+  const logoArtworkFailed = Boolean(failedImages[NEO_AUDIO_HEADER_1]);
   const bothImagesFailed = Boolean(failedImages[NEO_BOOT_INITIALIZING] && failedImages[NEO_BOOT_HERO]);
+  const bootLabel =
+    stage === 'initializing' ? 'SYSTEM INITIALIZING' : stage === 'loading' ? 'AUDIO LAB LOADING' : 'AUDIO LAB READY';
 
   const statusLines = useMemo(() => {
     if (stage === 'initializing') {
@@ -97,7 +100,22 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
       </div>
 
       <div className="neo-boot-copy">
-        <p className="neo-boot-kicker">{stage === 'initializing' ? 'SYSTEM INITIALIZING' : 'N.E.O AUDIO LAB'}</p>
+        <div className="neo-boot-logo-lockup" aria-label={`N.E.O Audio Lab ${bootLabel}`}>
+          {!logoArtworkFailed ? (
+            <img
+              alt="N.E.O Audio Lab logo"
+              className="neo-boot-logo-mark"
+              onError={() => handleImageError(NEO_AUDIO_HEADER_1)}
+              src={NEO_AUDIO_HEADER_1}
+            />
+          ) : (
+            <p className="neo-boot-kicker neo-boot-wordmark-fallback">
+              <span>N.E.O</span>
+              <span>AUDIO LAB</span>
+            </p>
+          )}
+          <p className="neo-boot-stage-label">{bootLabel}</p>
+        </div>
         <div className="neo-boot-status" aria-live="polite">
           {statusLines.map(line => (
             <span key={line}>{line}</span>

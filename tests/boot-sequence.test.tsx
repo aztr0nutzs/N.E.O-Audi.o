@@ -18,6 +18,10 @@ describe('BootSequence', () => {
 
     expect(screen.getByTestId('boot-sequence')).toHaveAttribute('data-stage', 'initializing');
     expect(screen.getByText(/system initializing/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/n\.e\.o audio lab logo/i)).toHaveAttribute(
+      'src',
+      expect.stringContaining('neo_audio_header1.png'),
+    );
     expect(screen.getByAltText(/system initializing artwork/i)).toHaveAttribute(
       'src',
       expect.stringContaining('neo_audio_boot_initializing.png'),
@@ -32,6 +36,7 @@ describe('BootSequence', () => {
     });
 
     expect(screen.getByTestId('boot-sequence')).toHaveAttribute('data-stage', 'loading');
+    expect(screen.getByText(/audio lab loading/i)).toBeInTheDocument();
     expect(screen.getByText(/loading n\.e\.o audio lab/i)).toBeInTheDocument();
 
     act(() => {
@@ -39,7 +44,8 @@ describe('BootSequence', () => {
     });
 
     expect(screen.getByTestId('boot-sequence')).toHaveAttribute('data-stage', 'ready');
-    expect(screen.getByText(/n\.e\.o audio lab/i)).toBeInTheDocument();
+    expect(screen.getByText(/audio lab ready/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/n\.e\.o audio lab logo/i)).toBeInTheDocument();
     expect(screen.getByAltText(/hero artwork/i)).toHaveAttribute('src', expect.stringContaining('neo_audio_boot.png'));
   });
 

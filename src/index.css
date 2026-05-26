@@ -278,6 +278,24 @@
   text-align: center;
 }
 
+.neo-boot-logo-lockup {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.neo-boot-logo-mark {
+  display: block;
+  width: min(100%, 540px);
+  max-height: clamp(82px, 18vw, 148px);
+  object-fit: contain;
+  object-position: center;
+  filter:
+    drop-shadow(0 0 14px rgba(0, 240, 255, 0.5))
+    drop-shadow(0 0 26px rgba(255, 0, 255, 0.24));
+}
+
 .neo-boot-kicker {
   margin: 0;
   color: #f8fbff;
@@ -287,6 +305,41 @@
   text-shadow:
     0 0 16px rgba(0, 240, 255, 0.62),
     0 0 28px rgba(255, 0, 255, 0.34);
+}
+
+.neo-boot-wordmark-fallback {
+  display: grid;
+  gap: 0;
+  line-height: 0.9;
+}
+
+.neo-boot-wordmark-fallback span:first-child {
+  color: #00f0ff;
+  font-size: clamp(2rem, 9vw, 4.6rem);
+  text-shadow:
+    0 0 18px rgba(0, 240, 255, 0.78),
+    0 0 34px rgba(0, 240, 255, 0.34);
+}
+
+.neo-boot-wordmark-fallback span:last-child {
+  color: #ff4dff;
+  font-family: var(--font-mono);
+  font-size: clamp(0.92rem, 3.2vw, 1.55rem);
+  text-shadow:
+    0 0 14px rgba(255, 0, 255, 0.68),
+    0 0 28px rgba(0, 240, 255, 0.24);
+}
+
+.neo-boot-stage-label {
+  margin: 0;
+  color: rgba(0, 240, 255, 0.9);
+  font-family: var(--font-mono);
+  font-size: clamp(0.66rem, 1.9vw, 0.86rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow:
+    0 0 10px rgba(0, 240, 255, 0.58),
+    0 0 18px rgba(57, 255, 20, 0.18);
 }
 
 .neo-boot-status {
