@@ -1,3 +1,36 @@
+
+<div align="center">
+  <img src="./neo_audio_ad3.png" alt= width="100%" />
+</div>
+
+<div align="center">
+
+# N.E.O Audio Lab
+
+<p>
+  <strong>• MP3 Downloader & MP3 Player</strong>
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform Android" />
+  <img src="https://img.shields.io/badge/Stack-Next.js%20%7C%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Compose" />
+  <img src="https://img.shields.io/badge/Audio-Offline%20Playback-FF6B6B?style=for-the-badge" alt="Offline Playback" />
+  <img src="https://img.shields.io/badge/Status-In%20Progress-F7B731?style=for-the-badge" alt="In Progress" />
+</p>
+
+</div>
+
+
+<div align="center">
+  <img src="./public/images/neo/info/neo_audio_ad2.png" alt= width="100%" />
+</div>
+
+
+
+
+
+
+
 # N.E.O Audio Lab
 
 A cyberpunk-themed audio downloader, library, player, uploader, and equalizer interface built with React, Vite, and Express.
@@ -12,6 +45,13 @@ A cyberpunk-themed audio downloader, library, player, uploader, and equalizer in
 - `dist` is intentionally **not** packaged — produce a production build locally with `npm run build`.
 - `uploads/db.json` and `uploads/jobs.json` ship as empty arrays (`[]`); the running server reads/writes them in place.
 
+<div align="center">
+  <img src="./neo_audio_header3.png" alt= width="100%" />
+</div>
+
+<div align="center">
+
+
 ## Capabilities
 
 - **UI shell:** full N.E.O. neon navigation, reactor visuals, armored panels, and custom typography (preserved end-to-end).
@@ -19,6 +59,13 @@ A cyberpunk-themed audio downloader, library, player, uploader, and equalizer in
 - **Library:** persistent track index served from the backend, queryable from the Library page.
 - **Player & Equalizer:** real-time playback, 10-band EQ with presets and spatial control, visualizer synced to the audio reactor.
 - **Downloader Engine:** real background download/extraction queue powered by **yt-dlp** (via `youtube-dl-exec`), **ffmpeg** (via `@ffmpeg-installer/ffmpeg`), and **ffprobe** (via `ffprobe-static`). Queued jobs are analyzed, extracted, converted to the selected format/bitrate, verified, and indexed into the Library. Real-time logs, progress, cancel, retry, and remove are all wired.
+
+<div align="center">
+  <img src="./neo_audio_header4.png" alt= width="100%" />
+</div>
+
+<div align="center">
+
 
 ## Tech Stack
 
