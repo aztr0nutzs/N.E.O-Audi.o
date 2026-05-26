@@ -17,6 +17,14 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     background-color: var(--color-neo-bg);
     background-image: 
@@ -45,6 +53,47 @@
     background-size: 100% 4px;
     z-index: 50;
     pointer-events: none;
+  }
+}
+
+@layer components {
+  .safe-screen {
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-bottom-dock-padding {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .neo-fixed-dock {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .neo-header-plate {
+    height: clamp(78px, 18vw, 112px);
+    padding: 4px 8px;
+  }
+
+  .neo-mobile-card {
+    padding: 16px;
+  }
+
+  @media (min-width: 768px) {
+    .safe-bottom-dock-padding {
+      padding-bottom: calc(132px + env(safe-area-inset-bottom));
+    }
+
+    .neo-header-plate {
+      height: clamp(128px, 16vw, 176px);
+      padding: 8px 12px;
+    }
+
+    .neo-mobile-card {
+      padding: 20px;
+    }
   }
 }
 

@@ -54,14 +54,39 @@ const accentText: Record<Accent, string> = {
 
 export function BottomDock() {
   return (
-    <div className="fixed bottom-0 left-0 z-50 w-full md:pb-6 pb-2 flex justify-center pointer-events-none">
-      <div className="relative mx-2 w-full max-w-2xl pointer-events-none">
+    <nav
+      className="neo-fixed-dock fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
+      aria-label="Primary"
+      data-testid="bottom-dock"
+    >
+      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none" />
+      <div className="relative mx-2 flex w-[min(calc(100vw-16px),720px)] flex-col items-center pointer-events-none">
+        {/* Compact secondary strip — keeps Downloader, Upload, and Equalizer reachable without competing with the rail */}
+        <div className="pointer-events-auto mb-1 flex w-full justify-center gap-1.5 px-2 sm:gap-2">
+          {SECONDARY_LINKS.map(link => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              aria-label={link.label}
+              className={({ isActive }) =>
+                cn(
+                  'cyber-panel min-h-8 flex-1 max-w-32 px-2 py-1.5 text-center text-[9px] font-mono uppercase tracking-wider rounded-md border bg-black/80 transition-all sm:text-[10px]',
+                  isActive
+                    ? cn('border-current', accentText[link.accent])
+                    : 'border-gray-800 text-gray-400 hover:text-white hover:border-gray-600'
+                )
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+
         {/* Dock art rail */}
-        <div className="relative pointer-events-none" style={{ aspectRatio: '5 / 1' }}>
+        <div className="relative h-[clamp(76px,21vw,96px)] w-full pointer-events-none">
           <img
             src={NEO_AUDIO_DOCK}
             alt="N.E.O Audio dock"
-            aria-hidden="true"
             draggable={false}
             className="absolute inset-0 h-full w-full object-contain object-bottom select-none pointer-events-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
           />
@@ -71,8 +96,8 @@ export function BottomDock() {
             {DOCK_SLOTS.map(slot => {
               const isCenter = slot.area === 'center';
               const baseShape = isCenter
-                ? 'h-[120%] aspect-square -translate-y-2'
-                : 'h-[78%] aspect-square';
+                ? 'min-h-12 h-[82%] aspect-square -translate-y-1'
+                : 'min-h-11 h-[62%] aspect-square';
               const commonClass =
                 'pointer-events-auto relative flex items-center justify-center select-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-cyan rounded-full border-2';
 
@@ -122,28 +147,7 @@ export function BottomDock() {
             })}
           </div>
         </div>
-
-        {/* Compact secondary strip — keeps Downloader, Upload, and Equalizer reachable */}
-        <div className="pointer-events-auto mt-1 flex justify-center gap-2 px-2">
-          {SECONDARY_LINKS.map(link => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              aria-label={link.label}
-              className={({ isActive }) =>
-                cn(
-                  'cyber-panel px-3 py-1 text-[10px] font-mono uppercase tracking-widest rounded-md border bg-black/60 transition-all',
-                  isActive
-                    ? cn('border-current', accentText[link.accent])
-                    : 'border-gray-800 text-gray-400 hover:text-white hover:border-gray-600'
-                )
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
-        </div>
       </div>
-    </div>
+    </nav>
   );
 }

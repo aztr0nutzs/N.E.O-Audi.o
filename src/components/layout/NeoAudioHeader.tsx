@@ -50,10 +50,9 @@ export function NeoAudioHeader({ className, alt = 'N.E.O Audio Lab' }: NeoAudioH
   return (
     <div
       className={cn(
-        'neo-audio-header relative w-full overflow-hidden rounded-xl border border-neo-cyan/30 bg-black/40 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
+        'neo-audio-header neo-header-plate relative w-full overflow-hidden rounded-xl border border-neo-cyan/30 bg-black/40 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
         className
       )}
-      style={{ aspectRatio: '16 / 5' }}
       role="img"
       aria-label={alt}
     >
@@ -64,7 +63,7 @@ export function NeoAudioHeader({ className, alt = 'N.E.O Audio Lab' }: NeoAudioH
           alt=""
           aria-hidden={i !== activeIndex}
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover object-center select-none pointer-events-none"
+          className="absolute inset-0 h-full w-full object-contain object-center select-none pointer-events-none"
           style={{
             opacity: i === activeIndex ? 1 : 0,
             transition: `opacity ${transitionDuration}ms ease-in-out`,

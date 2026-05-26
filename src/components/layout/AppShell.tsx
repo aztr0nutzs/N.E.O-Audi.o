@@ -18,10 +18,10 @@ export function AppShell() {
   }, [loadSettings, loadLibrary]);
 
   return (
-    <div className="flex h-screen bg-neo-bg text-gray-100 overflow-hidden font-sans">
+    <div className="safe-screen flex h-dvh bg-neo-bg text-gray-100 overflow-hidden font-sans">
       <div className="scanline-effect pointer-events-none" />
       <AudioDriver />
-      <div className="flex w-full flex-col relative scroll-smooth overflow-y-auto pb-32 overflow-x-hidden">
+      <div className="safe-bottom-dock-padding flex w-full flex-col relative scroll-smooth overflow-y-auto overflow-x-hidden">
          <main className="flex-1 p-2 sm:p-4 md:p-8 max-w-5xl mx-auto w-full">
             <Outlet />
          </main>

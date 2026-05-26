@@ -37,11 +37,27 @@ vi.mock('../src/store/usePlayerStore', () => ({
       pause: vi.fn(),
       resume: vi.fn(),
       stop: vi.fn(),
+      playTrack: vi.fn(),
+      addManyToQueue: vi.fn(),
     };
     return typeof sel === 'function' ? sel(state) : state;
   },
 }));
 vi.mock('../src/store/useEqualizerStore', () => ({ useEqualizerStore: () => ({ isOn: true, activePreset: 'Flat', bandValues: [0, 0, 0], spatial: 0 }) }));
+vi.mock('../src/store/useSignalChainStore', () => ({
+  useSignalChainStore: (sel?: any) => {
+    const state = {
+      modules: {
+        eq: { enabled: true },
+        bass: { enabled: false },
+        spatial: { enabled: false },
+        limiter: { enabled: true },
+      },
+      clippingWarning: false,
+    };
+    return typeof sel === 'function' ? sel(state) : state;
+  },
+}));
 vi.mock('../src/store/useAnalyzerStore', () => ({ useAnalyzerStore: (sel?: any) => {
   const state = { setAnalyzerOpen: vi.fn() };
   return typeof sel === 'function' ? sel(state) : state;
@@ -51,9 +67,12 @@ vi.mock('../src/lib/utils', () => ({ cn: (...a: string[]) => a.filter(Boolean).j
 vi.mock('motion/react', () => ({ motion: { div: (props: any) => <div {...props} /> } }));
 
 describe('Dashboard smoke', () => {
-  it('renders Up Next section', async () => {
+  it('renders command center dashboard sections', async () => {
     const { Dashboard } = await import('../src/pages/Dashboard');
     render(<MemoryRouter><Dashboard /></MemoryRouter>);
+    expect(screen.getByText(/n\.e\.o audio command center/i)).toBeInTheDocument();
+    expect(screen.getByText(/center reactor status/i)).toBeInTheDocument();
+    expect(screen.getByText(/now playing/i)).toBeInTheDocument();
     expect(screen.getByText(/up next/i)).toBeInTheDocument();
     expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
   });

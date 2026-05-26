@@ -152,23 +152,23 @@ export function Dashboard() {
           : 'standby';
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-28">
-      <NeoAudioHeader className="mb-4" alt="N.E.O Audio Lab dashboard" />
+    <div className="space-y-3 md:space-y-5">
+      <NeoAudioHeader className="mb-2 md:mb-4" alt="N.E.O Audio Lab dashboard" />
 
-      <section className="armored-frame p-4 md:p-6 bg-[#080910] border-neo-cyan/30">
-        <h1 className="text-2xl md:text-4xl font-black italic tracking-widest text-neo-cyan uppercase">N.E.O AUDIO COMMAND CENTER</h1>
-        <p className="text-[11px] md:text-xs font-mono tracking-[0.2em] text-neo-magenta uppercase">SIGNAL / LIBRARY / ENGINE STATUS</p>
+      <section className="armored-frame bg-[#080910] border-neo-cyan/30 px-3 py-3 md:px-5 md:py-4">
+        <h1 className="text-xl sm:text-2xl md:text-4xl font-black italic tracking-wider md:tracking-widest text-neo-cyan uppercase leading-tight">N.E.O AUDIO COMMAND CENTER</h1>
+        <p className="mt-1 text-[10px] md:text-xs font-mono tracking-[0.16em] md:tracking-[0.2em] text-neo-magenta uppercase">SIGNAL / LIBRARY / ENGINE STATUS</p>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="cyber-panel p-4 lg:col-span-2">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+        <div className="cyber-panel neo-mobile-card lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold tracking-widest text-neo-cyan uppercase">Center Reactor Status</h2>
             <span className={cn('text-[10px] font-mono uppercase tracking-widest', reactorState === 'alert' ? 'text-orange-400' : reactorState === 'playing' ? 'text-neo-lime' : 'text-gray-400')}>
               {reactorState}
             </span>
           </div>
-          <div className={cn('relative h-44 md:h-56 border rounded-xl bg-black/50 overflow-hidden', reactorState === 'alert' ? 'border-orange-500/60 shadow-[0_0_18px_rgba(249,115,22,0.35)]' : 'border-neo-cyan/30')}>
+          <div className={cn('relative h-[clamp(180px,52vw,220px)] md:h-56 border rounded-xl bg-black/50 overflow-hidden', reactorState === 'alert' ? 'border-orange-500/60 shadow-[0_0_18px_rgba(249,115,22,0.35)]' : 'border-neo-cyan/30')}>
             <div className={cn('absolute inset-6 rounded-full border', reactorState === 'downloading' ? 'animate-spin border-neo-magenta/50' : 'border-neo-cyan/30')} />
             <div className={cn('absolute inset-10 rounded-full', reactorState === 'playing' ? 'shadow-[0_0_30px_rgba(0,240,255,0.35)]' : reactorState === 'alert' ? 'shadow-[0_0_30px_rgba(249,115,22,0.35)]' : 'shadow-[0_0_18px_rgba(148,163,184,0.25)]')} />
             <div className="absolute inset-0 flex items-end gap-1 p-4">
@@ -186,7 +186,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="cyber-panel p-4">
+        <div className="cyber-panel neo-mobile-card">
           <h2 className="text-sm font-bold tracking-widest text-neo-lime uppercase mb-3">Now Playing</h2>
           {currentTrack ? (
             <div className="space-y-2 text-sm">
@@ -215,8 +215,8 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="cyber-panel p-4">
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <div className="cyber-panel neo-mobile-card">
           <h3 className="text-sm font-bold tracking-widest uppercase text-neo-magenta mb-2">Download Operations</h3>
           <p className="text-xs font-mono">Active: {activeJobs.length} · Queued: {queuedJobs.length}</p>
           <p className={cn('text-xs font-mono', failedJobs.length ? 'text-orange-400' : 'text-gray-300')}>Failed: {failedJobs.length} · Completed: {completedJobs.length}</p>
@@ -230,7 +230,7 @@ export function Dashboard() {
           <button className="mt-3 px-3 py-2 border border-neo-magenta text-neo-magenta text-xs" onClick={() => navigate('/download')}>Open Downloader</button>
         </div>
 
-        <div className="cyber-panel p-4">
+        <div className="cyber-panel neo-mobile-card">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold tracking-widest uppercase text-neo-magenta mb-2">Up Next</h3>
@@ -258,7 +258,7 @@ export function Dashboard() {
           )}
         </div>
 
-        <div className="cyber-panel p-4">
+        <div className="cyber-panel neo-mobile-card">
           <h3 className="text-sm font-bold tracking-widest uppercase text-neo-cyan mb-2">Library Intelligence</h3>
           <p className="text-xs font-mono">Tracks: {tracks.length} · Playlists: {playlists.length}</p>
           <p className="text-xs font-mono">Duration: {formatDuration(totalDuration)} · Storage: {formatBytes(totalSize)}</p>
@@ -266,7 +266,7 @@ export function Dashboard() {
           <button className="mt-3 px-3 py-2 border border-neo-cyan text-neo-cyan text-xs" onClick={() => navigate('/library')}>Open Library</button>
         </div>
 
-        <div className="cyber-panel p-4">
+        <div className="cyber-panel neo-mobile-card">
           <h3 className="text-sm font-bold tracking-widest uppercase text-neo-lime mb-2">EQ / Signal Chain</h3>
           <p className="text-xs font-mono">EQ: {isOn ? 'ENABLED' : 'DISABLED'}</p>
           <p className="text-xs font-mono">Preset: {activePreset}</p>
@@ -276,7 +276,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="cyber-panel p-4">
+      <section className="cyber-panel neo-mobile-card">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-sm font-bold tracking-widest uppercase text-neo-cyan mb-2">Signal Chain Status</h3>
@@ -289,7 +289,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="cyber-panel p-4">
+      <section className="cyber-panel neo-mobile-card">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold tracking-widest uppercase text-neo-lime">Smart Packs</h3>
@@ -326,7 +326,7 @@ export function Dashboard() {
         )}
       </section>
 
-      <section className="cyber-panel p-4">
+      <section className="cyber-panel neo-mobile-card">
         <h3 className="text-sm font-bold tracking-widest uppercase text-white mb-3">Quick Actions</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
           <NeoImageButton src={NEO_AUDIO_BUTTONS.download} alt="Downloader" label="Open Downloader" size="sm" onClick={() => navigate('/download')} />
@@ -340,7 +340,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="cyber-panel p-4">
+      <section className="cyber-panel neo-mobile-card">
         <h3 className="text-sm font-bold tracking-widest uppercase text-neo-yellow mb-3">Recent Activity</h3>
         {tracks.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">

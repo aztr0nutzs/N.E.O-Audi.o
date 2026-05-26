@@ -13,6 +13,13 @@ describe('BottomDock', () => {
     render(<MemoryRouter><BottomDock /></MemoryRouter>);
     const dockImg = document.querySelector('img[src*="neo_audio_dock.png"]') as HTMLImageElement | null;
     expect(dockImg).not.toBeNull();
+    expect(dockImg).toHaveClass('object-contain');
+  });
+
+  it('uses a fixed dock wrapper', () => {
+    render(<MemoryRouter><BottomDock /></MemoryRouter>);
+    expect(screen.getByTestId('bottom-dock')).toHaveClass('fixed');
+    expect(screen.getByTestId('bottom-dock')).toHaveClass('neo-fixed-dock');
   });
 
   it('exposes navigation links for primary routes', () => {
@@ -21,6 +28,13 @@ describe('BottomDock', () => {
     expect(screen.getByRole('link', { name: /^player$/i })).toHaveAttribute('href', '/player');
     expect(screen.getByRole('link', { name: /^library$/i })).toHaveAttribute('href', '/library');
     expect(screen.getByRole('link', { name: /^settings$/i })).toHaveAttribute('href', '/settings');
+  });
+
+  it('exposes disabled chat control', () => {
+    render(<MemoryRouter><BottomDock /></MemoryRouter>);
+    const chat = screen.getByRole('button', { name: /^chat$/i });
+    expect(chat).toBeDisabled();
+    expect(chat).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('exposes secondary access to downloader, upload, equalizer', () => {
