@@ -118,6 +118,20 @@ const normalizeFormat = (raw: string | undefined, fallback: SupportedFormat = 'm
    return fallback;
 };
 
+const firstTagValue = (tags: Record<string, unknown> | undefined, keys: string[], maxLength = 300): string | undefined => {
+   if (!tags) return undefined;
+   const entries = Object.entries(tags);
+   for (const key of keys) {
+      const found = entries.find(([name]) => name.toLowerCase() === key.toLowerCase());
+      const value = found?.[1];
+      if (typeof value === 'string') {
+         const trimmed = value.trim();
+         if (trimmed) return trimmed.slice(0, maxLength);
+      }
+   }
+   return undefined;
+};
+
 type Track = {
   id: string;
   title: string;
@@ -284,6 +298,7 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
     let actualDuration = 0;
     let actualBitrate = 0;
     let probedFormatRaw: string | undefined;
+    let probedTags: Record<string, unknown> | undefined;
     let hasAudioStream = false;
     let hasVideoStream = false;
     try {
@@ -298,7 +313,7 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
        const formatData = probeData.format;
        const streams: any[] = Array.isArray(probeData.streams) ? probeData.streams : [];
        hasAudioStream = streams.some(s => s && s.codec_type === 'audio');
-       hasVideoStream = streams.some(s => s && s.codec_type === 'video');
+       hasVideoStream = streams.some(s => s && s.codec_type === 'video' && Number(s.disposition?.attached_pic || 0) !== 1);
        if (formatData && formatData.duration) {
            const d = parseFloat(formatData.duration);
            if (Number.isFinite(d) && d > 0) actualDuration = d;
@@ -309,6 +324,9 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
        }
        if (formatData && typeof formatData.format_name === 'string') {
            probedFormatRaw = formatData.format_name;
+       }
+       if (formatData && formatData.tags && typeof formatData.tags === 'object') {
+           probedTags = formatData.tags;
        }
     } catch (probeErr) {
        console.error('ffprobe error on upload:', probeErr);
@@ -347,10 +365,16 @@ app.post("/api/tracks/upload", upload.single('file'), async (req, res) => {
     }
 
     const baseName = file.originalname.replace(/\.[^/.]+$/, '').trim();
+    const probedTitle = firstTagValue(probedTags, ['title', 'TIT2'], 300);
+    const probedArtist = firstTagValue(probedTags, ['artist', 'album_artist', 'TPE1', 'TPE2'], 300);
+    const probedAlbum = firstTagValue(probedTags, ['album', 'TALB'], 120);
+    const probedGenre = firstTagValue(probedTags, ['genre', 'TCON'], 80);
     const t: Track = {
       id: crypto.randomUUID(),
-      title: metadata.title || baseName || 'Unknown Title',
-      artist: metadata.artist || 'Unknown Artist',
+      title: metadata.title || probedTitle || baseName || 'Unknown Title',
+      artist: metadata.artist || probedArtist || 'Unknown Artist',
+      album: probedAlbum,
+      genre: probedGenre,
       sourceType: 'local',
       localUrl: `/api/stream/${file.filename}`,
       format,
@@ -873,6 +897,7 @@ const runDownloadEngine = async (jobId: string) => {
     job.progress = 2;
     job.updatedAt = Date.now();
     job.startedAt = Date.now();
+    const attemptStartedAt = job.startedAt;
     job.logs = [];
     job.error = undefined;
     job.errorCode = undefined;
@@ -890,6 +915,10 @@ const runDownloadEngine = async (jobId: string) => {
     const wasCancelled = () => {
        const j = downloadJobs.find(x => x.id === jobId);
        return j && j.status === 'cancelled';
+    };
+    const isCurrentAttempt = () => {
+       const j = downloadJobs.find(x => x.id === jobId);
+       return j && j.startedAt === attemptStartedAt;
     };
 
     log('start requested');
@@ -923,6 +952,8 @@ const runDownloadEngine = async (jobId: string) => {
             }
             throw new EngineError('metadata_failed', `Failed to read metadata: ${combined.slice(0, 400) || sysCode || 'unknown error'}`);
         }
+
+        if (!isCurrentAttempt()) return;
 
         if (wasCancelled()) { throw new EngineError('cancelled', 'Job cancelled before download'); }
 
@@ -1041,7 +1072,8 @@ const runDownloadEngine = async (jobId: string) => {
         try {
             await subprocess;
         } catch (procErr: any) {
-            jobProcesses.delete(job.id);
+            if (jobProcesses.get(job.id) === subprocess) jobProcesses.delete(job.id);
+            if (!isCurrentAttempt()) return;
             if (wasCancelled()) { throw new EngineError('cancelled', 'Job cancelled during download'); }
             const rawStderr: string = (procErr && procErr.stderr) ? String(procErr.stderr) : '';
             const rawMsg: string = (procErr && procErr.message) ? String(procErr.message) : String(procErr);
@@ -1050,7 +1082,8 @@ const runDownloadEngine = async (jobId: string) => {
             const code: EngineErrorCode = sysCode === 'ENOENT' ? 'engine_missing' : classifyDownloadFailure(combined);
             throw new EngineError(code, (combined || sysCode || 'unknown error').slice(0, 400));
         }
-        jobProcesses.delete(job.id);
+        if (jobProcesses.get(job.id) === subprocess) jobProcesses.delete(job.id);
+        if (!isCurrentAttempt()) return;
         log('Download/conversion process exited cleanly');
 
         if (wasCancelled()) { throw new EngineError('cancelled', 'Job cancelled after download'); }
@@ -1211,6 +1244,8 @@ const runDownloadEngine = async (jobId: string) => {
         job.progress = 100;
         job.resultTrackId = newTrack.id;
         job.completedAt = Date.now();
+        job.error = undefined;
+        job.errorCode = undefined;
         job.updatedAt = Date.now();
         job.speed = undefined;
         job.eta = undefined;
@@ -1219,6 +1254,7 @@ const runDownloadEngine = async (jobId: string) => {
         saveJobsDb();
 
     } catch (err: any) {
+        if (!isCurrentAttempt()) return;
         jobProcesses.delete(job.id);
 
         const isEngine = err instanceof EngineError;
