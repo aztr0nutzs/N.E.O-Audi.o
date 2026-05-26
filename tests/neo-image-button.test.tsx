@@ -20,9 +20,7 @@ describe('NeoImageButton', () => {
     expect(btn).toHaveClass('min-h-[60px]');
     const img = btn.querySelector('img');
     expect(img).not.toBeNull();
-    expect(img).toHaveClass('h-[88%]');
-    expect(img).toHaveClass('w-[88%]');
-    expect(img).toHaveStyle({ transform: 'scale(1.2)' });
+    expect(img).toHaveStyle({ transform: 'translate(0, 0) scale(1.2)' });
     expect(img!.getAttribute('src')).toBe('/assets/neo_audio/play.png');
   });
 

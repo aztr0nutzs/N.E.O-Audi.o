@@ -16,6 +16,10 @@ export interface NeoImageButtonProps {
   type?: 'button' | 'submit' | 'reset';
   title?: string;
   imageScale?: number;
+  imageOffsetX?: string;
+  imageOffsetY?: string;
+  imageFocusX?: number;
+  imageFocusY?: number;
 }
 
 const SIZE_CLASSES: Record<NeoImageButtonSize, string> = {
@@ -40,9 +44,24 @@ export const NeoImageButton = React.forwardRef<HTMLButtonElement, NeoImageButton
       type = 'button',
       title,
       imageScale = 1.2,
+      imageOffsetX = '0',
+      imageOffsetY = '0',
+      imageFocusX,
+      imageFocusY,
     },
     ref
   ) {
+    const hasImageFocus = typeof imageFocusX === 'number' && typeof imageFocusY === 'number';
+    const focusedImageSize = `${Number((88 * imageScale).toFixed(2))}%`;
+    const imageStyle = hasImageFocus
+      ? {
+          width: focusedImageSize,
+          height: focusedImageSize,
+          left: `calc(50% - ${(88 * imageScale * imageFocusX) / 100}%)`,
+          top: `calc(50% - ${(88 * imageScale * imageFocusY) / 100}%)`,
+        }
+      : { transform: `translate(${imageOffsetX}, ${imageOffsetY}) scale(${imageScale})` };
+
     return (
       <button
         ref={ref}
@@ -55,7 +74,7 @@ export const NeoImageButton = React.forwardRef<HTMLButtonElement, NeoImageButton
         title={title ?? label}
         data-active={active ? 'true' : undefined}
         className={cn(
-          'neo-image-button relative inline-flex items-center justify-center rounded-xl border bg-black/40 transition-all select-none',
+          'neo-image-button relative inline-flex items-center justify-center overflow-hidden rounded-xl border bg-black/40 transition-all select-none',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-black',
           'active:scale-95 touch-manipulation',
           SIZE_CLASSES[size],
@@ -71,9 +90,10 @@ export const NeoImageButton = React.forwardRef<HTMLButtonElement, NeoImageButton
           alt={alt}
           draggable={false}
           aria-hidden="true"
-          style={{ transform: `scale(${imageScale})` }}
+          style={imageStyle}
           className={cn(
-            'pointer-events-none h-[88%] w-[88%] object-contain select-none',
+            'pointer-events-none object-contain select-none',
+            hasImageFocus ? 'absolute max-w-none' : 'h-[88%] w-[88%]',
             active && 'drop-shadow-[0_0_6px_rgba(0,240,255,0.85)]',
             imageClassName
           )}

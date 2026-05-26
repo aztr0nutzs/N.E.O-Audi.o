@@ -87,6 +87,11 @@ describe('Dashboard command center', () => {
     expect(screen.getAllByRole('button', { name: /open player/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /open equalizer/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /live analyzer/i })).toBeInTheDocument();
-    expect(screen.getByTestId('dashboard-quick-actions').querySelectorAll('.neo-image-button').length).toBeGreaterThan(0);
+    const quickActions = screen.getByTestId('dashboard-quick-actions');
+    expect(quickActions.querySelectorAll('.neo-image-button').length).toBeGreaterThan(0);
+    expect(quickActions.querySelector('img')).toHaveStyle({
+      width: '246.4%',
+      height: '246.4%',
+    });
   });
 });

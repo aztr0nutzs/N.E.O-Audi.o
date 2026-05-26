@@ -131,7 +131,7 @@
     max-width: none;
     object-fit: contain;
     object-position: center bottom;
-    transform: translateX(-50%) scale(1.38);
+    transform: translateX(-50%) scale(1.35);
     transform-origin: center bottom;
   }
 
