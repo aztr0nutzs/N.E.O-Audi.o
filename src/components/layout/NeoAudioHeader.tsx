@@ -1,51 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
-import { NEO_AUDIO_HEADERS } from '../../lib/neoAudioAssets';
+import { NEO_AUDIO_HEADER_3, NEO_AUDIO_HEADER_4 } from '../../lib/neoAudioAssets';
 import { cn } from '../../lib/utils';
+
+export type NeoAudioHeaderVariant = 'header3' | 'header4';
 
 interface NeoAudioHeaderProps {
   className?: string;
   alt?: string;
+  variant?: NeoAudioHeaderVariant;
+  imageSrc?: string;
 }
 
-const ROTATE_MIN_MS = 20_000;
-const ROTATE_MAX_MS = 45_000;
-const CROSSFADE_MS = 900;
+const HEADER_VARIANTS: Record<NeoAudioHeaderVariant, string> = {
+  header3: NEO_AUDIO_HEADER_3,
+  header4: NEO_AUDIO_HEADER_4,
+};
 
-const randomDelay = () =>
-  ROTATE_MIN_MS + Math.floor(Math.random() * (ROTATE_MAX_MS - ROTATE_MIN_MS));
-
-export function NeoAudioHeader({ className, alt = 'N.E.O Audio Lab' }: NeoAudioHeaderProps) {
-  const [activeIndex, setActiveIndex] = useState<number>(() =>
-    Math.floor(Math.random() * NEO_AUDIO_HEADERS.length)
-  );
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prefersReducedMotion = useRef<boolean>(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      prefersReducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-
-    if (NEO_AUDIO_HEADERS.length <= 1) return;
-
-    const schedule = () => {
-      timeoutRef.current = setTimeout(() => {
-        setActiveIndex(prev => (prev + 1) % NEO_AUDIO_HEADERS.length);
-        schedule();
-      }, randomDelay());
-    };
-
-    schedule();
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, []);
-
-  const transitionDuration = prefersReducedMotion.current ? 0 : CROSSFADE_MS;
+export function NeoAudioHeader({
+  className,
+  alt = 'N.E.O Audio Lab',
+  variant = 'header3',
+  imageSrc,
+}: NeoAudioHeaderProps) {
+  const src = imageSrc ?? HEADER_VARIANTS[variant];
 
   return (
     <div
@@ -56,20 +32,13 @@ export function NeoAudioHeader({ className, alt = 'N.E.O Audio Lab' }: NeoAudioH
       role="img"
       aria-label={alt}
     >
-      {NEO_AUDIO_HEADERS.map((src, i) => (
-        <img
-          key={src}
-          src={src}
-          alt=""
-          aria-hidden={i !== activeIndex}
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-contain object-center select-none pointer-events-none"
-          style={{
-            opacity: i === activeIndex ? 1 : 0,
-            transition: `opacity ${transitionDuration}ms ease-in-out`,
-          }}
-        />
-      ))}
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-contain object-center select-none pointer-events-none"
+      />
       <div
         className="pointer-events-none absolute inset-0"
         style={{

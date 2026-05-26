@@ -100,7 +100,7 @@ export function Downloader() {
       {/* Circuit board background lines faint - implemented via CSS radial/linear in index already, but add faint overlay here */}
       <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.1) 0%, transparent 60%)' }} />
 
-      <NeoAudioHeader className="mb-6 relative z-10" alt="N.E.O Audio Lab downloader" />
+      <NeoAudioHeader variant="header3" className="mb-6 relative z-10" alt="N.E.O Audio Lab downloader" />
 
       <div className="relative flex flex-col items-center justify-center mb-8">
          <h1 className="text-3xl md:text-5xl font-bold tracking-[0.3em] font-mono uppercase bg-clip-text text-transparent bg-gradient-to-r from-neo-cyan via-white to-neo-magenta drop-shadow-[0_0_10px_currentColor]">DOWNLOADER MODULE</h1>

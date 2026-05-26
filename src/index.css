@@ -72,6 +72,17 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  .neo-app-background {
+    background-image:
+      linear-gradient(180deg, rgba(3, 3, 5, 0.32), rgba(3, 3, 5, 0.72)),
+      radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 48%),
+      var(--neo-audio-background);
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
   .neo-header-plate {
     height: clamp(78px, 18vw, 112px);
     padding: 4px 8px;

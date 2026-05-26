@@ -4,15 +4,23 @@ import React from 'react';
 import { NeoAudioHeader } from '../src/components/layout/NeoAudioHeader';
 
 describe('NeoAudioHeader', () => {
-  it('renders header art with aria-label', () => {
-    render(<NeoAudioHeader alt="N.E.O Audio Lab player" />);
+  it('renders header3 art with aria-label', () => {
+    render(<NeoAudioHeader variant="header3" alt="N.E.O Audio Lab dashboard" />);
+    const header = screen.getByRole('img', { name: /n\.e\.o audio lab dashboard/i });
+    expect(header).toBeInTheDocument();
+    expect(header).toHaveClass('neo-header-plate');
+    const img = header.querySelector('img');
+    expect(img).toHaveClass('object-contain');
+    expect(img?.getAttribute('src')).toContain('neo_audio_header3.png');
+  });
+
+  it('renders header4 art with aria-label', () => {
+    render(<NeoAudioHeader variant="header4" alt="N.E.O Audio Lab player" />);
     const header = screen.getByRole('img', { name: /n\.e\.o audio lab player/i });
     expect(header).toBeInTheDocument();
     expect(header).toHaveClass('neo-header-plate');
-    const imgs = header.querySelectorAll('img');
-    expect(imgs.length).toBeGreaterThan(0);
-    expect(imgs[0]).toHaveClass('object-contain');
-    const srcs = Array.from(imgs).map(i => i.getAttribute('src') ?? '');
-    expect(srcs.some(s => s.includes('neo_audio_header1.png') || s.includes('neo_audio_header2.png'))).toBe(true);
+    const img = header.querySelector('img');
+    expect(img).toHaveClass('object-contain');
+    expect(img?.getAttribute('src')).toContain('neo_audio_header4.png');
   });
 });

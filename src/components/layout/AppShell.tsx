@@ -2,12 +2,13 @@ import { Outlet } from 'react-router-dom';
 import { BottomDock } from './BottomDock';
 import { useAppStore } from '../../store/useAppStore';
 import { useLibraryStore } from '../../store/useLibraryStore';
-import { useCallback, useEffect, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 
 import { AudioDriver } from './AudioDriver';
 import { AudioAnalyzerOverlay } from '../audio/AudioAnalyzerOverlay';
 import { BootSequence } from '../startup/BootSequence';
+import { NEO_AUDIO_BACKGROUND } from '../../lib/neoAudioAssets';
 
 const NEO_BOOT_SESSION_KEY = 'neo-audio-boot-sequence-complete';
 
@@ -38,8 +39,16 @@ export function AppShell() {
     setShowBootSequence(false);
   }, []);
 
+  const backgroundStyle = {
+    '--neo-audio-background': `url("${NEO_AUDIO_BACKGROUND}")`,
+  } as CSSProperties;
+
   return (
-    <div className="safe-screen flex h-dvh bg-neo-bg text-gray-100 overflow-hidden font-sans">
+    <div
+      className="neo-app-background safe-screen flex h-dvh bg-neo-bg text-gray-100 overflow-hidden font-sans"
+      style={backgroundStyle}
+      data-testid="app-shell"
+    >
       {showBootSequence && <BootSequence onComplete={handleBootComplete} />}
       <div className="scanline-effect pointer-events-none" />
       <AudioDriver />

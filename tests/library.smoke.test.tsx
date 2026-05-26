@@ -38,6 +38,10 @@ describe('Library smoke', () => {
     };
     const { Library } = await import('../src/pages/Library');
     render(<MemoryRouter><Library /></MemoryRouter>);
+    expect(screen.getByRole('img', { name: /n\.e\.o audio lab library/i }).querySelector('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('neo_audio_header4.png'),
+    );
     expect(screen.getAllByText(/downloaded/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/recently added/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/lossless/i).length).toBeGreaterThan(0);

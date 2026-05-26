@@ -66,7 +66,7 @@ export function Player() {
   if (!track) {
     return (
       <div className="min-h-[calc(100vh-100px)] flex flex-col items-center justify-center p-4 gap-6 w-full max-w-lg mx-auto">
-        <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab player" />
+        <NeoAudioHeader variant="header4" className="w-full" alt="N.E.O Audio Lab player" />
         <div className="hud-panel w-full max-w-sm aspect-square flex flex-col items-center justify-center border-gray-800">
            <ReactorCoreVisual className="w-1/2 h-1/2 opacity-20" intensity="low" />
            <p className="mt-8 font-mono text-sm tracking-widest text-gray-600">AWAITING SIGNAL</p>
@@ -126,7 +126,7 @@ export function Player() {
   return (
     <div className="max-w-lg mx-auto min-h-screen pb-24 flex flex-col items-center p-4 space-y-6">
 
-      <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab player" />
+      <NeoAudioHeader variant="header4" className="w-full" alt="N.E.O Audio Lab player" />
 
       {/* Top Title HUD */}
       <div className="armored-frame p-2 px-6 border-neo-cyan/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] w-full relative flex items-center justify-between gap-2 min-h-[64px]">

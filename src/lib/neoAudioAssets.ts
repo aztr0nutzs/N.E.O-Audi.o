@@ -2,10 +2,13 @@ export const NEO_AUDIO_ASSETS_BASE = '/assets/neo_audio';
 
 export const NEO_AUDIO_ICON = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_icon.png`;
 
-export const NEO_AUDIO_HEADERS = [
-  `${NEO_AUDIO_ASSETS_BASE}/neo_audio_header1.png`,
-  `${NEO_AUDIO_ASSETS_BASE}/neo_audio_header2.png`,
-];
+export const NEO_AUDIO_HEADER_1 = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_header1.png`;
+export const NEO_AUDIO_HEADER_2 = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_header2.png`;
+export const NEO_AUDIO_HEADER_3 = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_header3.png`;
+export const NEO_AUDIO_HEADER_4 = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_header4.png`;
+export const NEO_AUDIO_BACKGROUND = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_backround.png`;
+
+export const NEO_AUDIO_HEADERS = [NEO_AUDIO_HEADER_3, NEO_AUDIO_HEADER_4];
 
 export const NEO_AUDIO_DOCK = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_dock.png`;
 

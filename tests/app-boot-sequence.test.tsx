@@ -103,7 +103,14 @@ describe('App boot sequence integration', () => {
     render(<App />);
 
     expect(screen.getByTestId('boot-sequence')).toBeInTheDocument();
+    expect(screen.getByTestId('app-shell')).toHaveStyle({
+      '--neo-audio-background': 'url("/assets/neo_audio/neo_audio_backround.png")',
+    });
     expect(screen.getByText(/n\.e\.o audio command center/i)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /n\.e\.o audio lab dashboard/i }).querySelector('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('neo_audio_header3.png'),
+    );
 
     act(() => {
       vi.advanceTimersByTime(3800);

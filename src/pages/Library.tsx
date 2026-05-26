@@ -264,7 +264,7 @@ export function Library() {
   return (
     <div className="max-w-md md:max-w-4xl mx-auto min-h-[calc(100vh-100px)] p-2 md:p-4 flex flex-col items-center relative">
 
-      <NeoAudioHeader className="w-full mb-4" alt="N.E.O Audio Lab library" />
+      <NeoAudioHeader variant="header4" className="w-full mb-4" alt="N.E.O Audio Lab library" />
 
       {/* Top Header */}
       <header className="w-full flex justify-between items-center z-20 mb-6 relative px-2">

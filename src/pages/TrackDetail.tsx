@@ -61,7 +61,7 @@ export function TrackDetail() {
 
   if (!track && !isLoading) {
     return <div className="max-w-3xl mx-auto p-4 min-h-[calc(100vh-100px)] flex flex-col items-center justify-center gap-4">
-      <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab track detail" />
+      <NeoAudioHeader variant="header4" className="w-full" alt="N.E.O Audio Lab track detail" />
       <div className="armored-frame p-8 w-full text-center bg-black/50 border-neo-magenta/40">
         <h1 className="text-3xl font-black italic tracking-widest text-neo-magenta">TRACK SIGNAL LOST</h1>
         <p className="font-mono text-xs text-gray-400 mt-2">Signal id: {id}</p>
@@ -92,7 +92,7 @@ export function TrackDetail() {
   };
 
   return <div className="max-w-4xl mx-auto min-h-[calc(100vh-100px)] p-3 md:p-5 pb-24 space-y-4">
-    <NeoAudioHeader className="w-full" alt="N.E.O Audio Lab track detail" />
+    <NeoAudioHeader variant="header4" className="w-full" alt="N.E.O Audio Lab track detail" />
     <div className="armored-frame p-3 md:p-5 bg-[#07080f] border-neo-cyan/30">
       <h1 className="text-2xl md:text-4xl font-black italic text-neo-cyan tracking-widest">TRACK AUDIO LAB</h1>
       <p className="font-mono text-xs text-neo-magenta tracking-widest">SIGNAL PROFILE / METADATA CORE</p>

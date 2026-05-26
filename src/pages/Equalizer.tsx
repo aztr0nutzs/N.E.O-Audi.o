@@ -133,7 +133,7 @@ export function Equalizer() {
   return (
     <div className="max-w-6xl mx-auto min-h-[calc(100vh-100px)] pb-32 flex flex-col items-center p-2 sm:p-4 font-sans overflow-x-hidden pt-8">
 
-      <NeoAudioHeader className="w-full mb-6" alt="N.E.O Audio Lab equalizer" />
+      <NeoAudioHeader variant="header4" className="w-full mb-6" alt="N.E.O Audio Lab equalizer" />
 
       {/* Header */}
       <header className="w-full flex justify-between items-center armored-frame border-2 border-[#1a1a24] bg-[#0a0a0f] p-2 md:p-4 mb-8 shadow-[0_0_20px_rgba(0,0,0,0.8)] relative">

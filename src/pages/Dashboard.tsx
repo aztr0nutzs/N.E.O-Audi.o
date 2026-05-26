@@ -153,7 +153,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-3 md:space-y-5">
-      <NeoAudioHeader className="mb-2 md:mb-4" alt="N.E.O Audio Lab dashboard" />
+      <NeoAudioHeader variant="header3" className="mb-2 md:mb-4" alt="N.E.O Audio Lab dashboard" />
 
       <section className="armored-frame bg-[#080910] border-neo-cyan/30 px-3 py-3 md:px-5 md:py-4">
         <h1 className="text-xl sm:text-2xl md:text-4xl font-black italic tracking-wider md:tracking-widest text-neo-cyan uppercase leading-tight">N.E.O AUDIO COMMAND CENTER</h1>
