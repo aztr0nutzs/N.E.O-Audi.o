@@ -88,6 +88,11 @@
     padding: 4px 8px;
   }
 
+  .neo-audio-header-image {
+    object-fit: contain;
+    object-position: center center;
+  }
+
   .neo-mobile-card {
     padding: 16px;
   }

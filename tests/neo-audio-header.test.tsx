@@ -9,8 +9,9 @@ describe('NeoAudioHeader', () => {
     const header = screen.getByRole('img', { name: /n\.e\.o audio lab dashboard/i });
     expect(header).toBeInTheDocument();
     expect(header).toHaveClass('neo-header-plate');
+    expect(header).toHaveAttribute('data-variant', 'header3');
     const img = header.querySelector('img');
-    expect(img).toHaveClass('object-contain');
+    expect(img).toHaveClass('neo-audio-header-image');
     expect(img?.getAttribute('src')).toContain('neo_audio_header3.png');
   });
 
@@ -19,8 +20,9 @@ describe('NeoAudioHeader', () => {
     const header = screen.getByRole('img', { name: /n\.e\.o audio lab player/i });
     expect(header).toBeInTheDocument();
     expect(header).toHaveClass('neo-header-plate');
+    expect(header).toHaveAttribute('data-variant', 'header4');
     const img = header.querySelector('img');
-    expect(img).toHaveClass('object-contain');
+    expect(img).toHaveClass('neo-audio-header-image');
     expect(img?.getAttribute('src')).toContain('neo_audio_header4.png');
   });
 });
