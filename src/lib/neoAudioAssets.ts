@@ -9,6 +9,9 @@ export const NEO_AUDIO_HEADERS = [
 
 export const NEO_AUDIO_DOCK = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_dock.png`;
 
+export const NEO_BOOT_HERO = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_boot.png`;
+export const NEO_BOOT_INITIALIZING = `${NEO_AUDIO_ASSETS_BASE}/neo_audio_boot_initializing.png`;
+
 export const NEO_AUDIO_BUTTONS = {
   play: `${NEO_AUDIO_ASSETS_BASE}/play.png`,
   pause: `${NEO_AUDIO_ASSETS_BASE}/pause.png`,

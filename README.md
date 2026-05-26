@@ -92,6 +92,13 @@ The launcher icon source lives at `public/assets/neo_audio/neo_audio_icon.png` a
 - **Headers** use `neo_audio_header1.png` and `neo_audio_header2.png` rotated through `<NeoAudioHeader>` (Dashboard, Downloader, Uploader, Library, Player, Equalizer, Settings).
 - **Web/PWA icon** uses `neo_audio_icon.png` as documented above.
 
+## Startup Boot Sequence
+
+- Uses branded N.E.O startup artwork from `public/assets/neo_audio/neo_audio_boot_initializing.png` and `public/assets/neo_audio/neo_audio_boot.png`.
+- Shows a short initialization-to-hero startup flow before fading into the app shell.
+- Designed for mobile and Android-friendly launch behavior with safe-area padding and contained artwork framing.
+- Runs once per browser session and does not replay during normal in-app navigation.
+
 ## Queue / Up Next
 
 - Real playback queue with the current signal, Up Next list, and playback history.

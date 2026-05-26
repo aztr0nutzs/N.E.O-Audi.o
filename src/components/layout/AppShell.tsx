@@ -2,23 +2,45 @@ import { Outlet } from 'react-router-dom';
 import { BottomDock } from './BottomDock';
 import { useAppStore } from '../../store/useAppStore';
 import { useLibraryStore } from '../../store/useLibraryStore';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 
 import { AudioDriver } from './AudioDriver';
 import { AudioAnalyzerOverlay } from '../audio/AudioAnalyzerOverlay';
+import { BootSequence } from '../startup/BootSequence';
+
+const NEO_BOOT_SESSION_KEY = 'neo-audio-boot-sequence-complete';
+
+function shouldShowBootSequence() {
+  try {
+    return window.sessionStorage.getItem(NEO_BOOT_SESSION_KEY) !== 'true';
+  } catch {
+    return true;
+  }
+}
 
 export function AppShell() {
   const loadSettings = useAppStore(state => state.loadSettings);
   const loadLibrary = useLibraryStore(state => state.loadLibrary);
+  const [showBootSequence, setShowBootSequence] = useState(shouldShowBootSequence);
 
   useEffect(() => {
     loadSettings();
     loadLibrary();
   }, [loadSettings, loadLibrary]);
 
+  const handleBootComplete = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(NEO_BOOT_SESSION_KEY, 'true');
+    } catch {
+      // Session storage can be unavailable in locked-down WebViews; the boot still exits.
+    }
+    setShowBootSequence(false);
+  }, []);
+
   return (
     <div className="safe-screen flex h-dvh bg-neo-bg text-gray-100 overflow-hidden font-sans">
+      {showBootSequence && <BootSequence onComplete={handleBootComplete} />}
       <div className="scanline-effect pointer-events-none" />
       <AudioDriver />
       <div className="safe-bottom-dock-padding flex w-full flex-col relative scroll-smooth overflow-y-auto overflow-x-hidden">
