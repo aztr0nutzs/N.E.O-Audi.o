@@ -44,8 +44,6 @@ A cyberpunk-themed audio downloader, library, player, uploader, and equalizer in
 <div align="center">
   <img src="./public/assets/neo_audio/neo_audio_header3.png" alt="N.E.O Audio Lab dashboard and utility screen header" width="760" />
   <br />
-  <sub>Header 3 anchors Dashboard, Downloader, Uploader, and Settings.</sub>
-</div>
 
 <br />
 
@@ -58,8 +56,6 @@ N.E.O Audio Lab uses deterministic branded artwork instead of random README imag
 <div align="center">
   <img src="./public/assets/neo_audio/neo_audio_header4.png" alt="N.E.O Audio Lab player and audio workspace header" width="680" />
   <br />
-  <sub>Header 4 anchors Player, Library, Equalizer, and Track Detail.</sub>
-</div>
 
 <br />
 
