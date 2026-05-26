@@ -53,7 +53,7 @@ export function AppShell() {
       <div className="scanline-effect pointer-events-none" />
       <AudioDriver />
       <div className="safe-bottom-dock-padding flex w-full flex-col relative scroll-smooth overflow-y-auto overflow-x-hidden">
-         <main className="flex-1 p-2 sm:p-4 md:p-8 max-w-5xl mx-auto w-full">
+         <main className="flex-1 w-full max-w-5xl mx-auto px-2.5 pt-2 pb-4 sm:px-4 md:px-8 md:pt-5">
             <Outlet />
          </main>
       </div>

@@ -11,6 +11,8 @@ vi.mock('../src/store/useLibraryStore', () => ({
   useLibraryStore: (sel: any) => sel(libraryState || {
     tracks: [{ id: 't1', title: 'Track One', artist: 'Artist', sourceType: 'downloaded', localUrl: 'blob:x', format: 'mp3', duration: 10, size: 10, createdAt: 0, updatedAt: 0, favorite: false }],
     playlists: [],
+    backendStatus: 'online',
+    backendMessage: null,
     removeTrack: vi.fn(),
     addPlaylist: vi.fn(),
     updatePlaylist: vi.fn(),
@@ -32,6 +34,8 @@ describe('Library smoke', () => {
     libraryState = {
       tracks: [{ id: 't1', title: 'Track One', artist: 'Artist', sourceType: 'downloaded', localUrl: 'blob:x', format: 'mp3', duration: 10, size: 10, createdAt: 0, updatedAt: 0, favorite: false }],
       playlists: [],
+      backendStatus: 'online',
+      backendMessage: null,
       removeTrack: vi.fn(),
       addPlaylist: vi.fn(),
       updatePlaylist: vi.fn(),
@@ -59,6 +63,8 @@ describe('Library smoke', () => {
         { id: 'a', title: 'Alpha', artist: 'Artist A', sourceType: 'downloaded', localUrl: '', format: 'mp3', duration: 120, size: 1, createdAt: 1, updatedAt: 1, favorite: false },
       ],
       playlists: [],
+      backendStatus: 'online',
+      backendMessage: null,
       removeTrack: vi.fn(),
       addPlaylist: vi.fn(),
       updatePlaylist: vi.fn(),
@@ -75,6 +81,8 @@ describe('Library smoke', () => {
         { id: 'plain', title: 'Plain Signal', artist: 'Artist B', sourceType: 'local', localUrl: '', format: 'mp3', duration: 120, size: 1, createdAt: 1, updatedAt: 1, favorite: false },
       ],
       playlists: [],
+      backendStatus: 'online',
+      backendMessage: null,
       removeTrack: vi.fn(),
       addPlaylist: vi.fn(),
       updatePlaylist: vi.fn(),
@@ -91,6 +99,8 @@ describe('Library smoke', () => {
     libraryState = {
       tracks: [{ id: 'a', title: 'No Favorite', artist: 'Artist A', sourceType: 'local', localUrl: '', format: 'mp3', duration: 120, size: 1, createdAt: 1, updatedAt: 1, favorite: false, mood: 'Night Drive' }],
       playlists: [],
+      backendStatus: 'online',
+      backendMessage: null,
       removeTrack: vi.fn(),
       addPlaylist: vi.fn(),
       updatePlaylist: vi.fn(),
@@ -101,5 +111,23 @@ describe('Library smoke', () => {
     expect(screen.getAllByText(/night drive/i).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText(/^Favorites$/i));
     expect(screen.getByText(/no signals match this pack/i)).toBeInTheDocument();
+  });
+
+  it('shows clean backend offline state with collapsed technical details', async () => {
+    libraryState = {
+      tracks: [],
+      playlists: [],
+      backendStatus: 'offline',
+      backendMessage: 'Unexpected token < in JSON at position 0 <!doctype html>',
+      removeTrack: vi.fn(),
+      addPlaylist: vi.fn(),
+      updatePlaylist: vi.fn(),
+    };
+    const { Library } = await import('../src/pages/Library');
+    render(<MemoryRouter><Library /></MemoryRouter>);
+    expect(screen.getByText(/backend offline or api endpoint misconfigured/i)).toBeInTheDocument();
+    expect(screen.queryByText(/unexpected token </i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /show technical details/i }));
+    expect(screen.getByText(/unexpected token </i)).toBeInTheDocument();
   });
 });

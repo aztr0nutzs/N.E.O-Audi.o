@@ -49,6 +49,7 @@ describe('Dashboard command center', () => {
     expect(screen.getByText(/signal chain status/i)).toBeInTheDocument();
     expect(screen.getAllByText(/smart packs/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/quick actions/i)).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-quick-actions')).toBeInTheDocument();
   });
 
   it('shows empty signal state when no active track', async () => {
@@ -86,5 +87,6 @@ describe('Dashboard command center', () => {
     expect(screen.getAllByRole('button', { name: /open player/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /open equalizer/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /live analyzer/i })).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-quick-actions').querySelectorAll('.neo-image-button').length).toBeGreaterThan(0);
   });
 });

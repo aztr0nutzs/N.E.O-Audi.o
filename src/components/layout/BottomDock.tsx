@@ -59,10 +59,13 @@ export function BottomDock() {
       aria-label="Primary"
       data-testid="bottom-dock"
     >
-      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none" />
       <div className="relative mx-2 flex w-[min(calc(100vw-16px),720px)] flex-col items-center pointer-events-none">
         {/* Compact secondary strip — keeps Downloader, Upload, and Equalizer reachable without competing with the rail */}
-        <div className="pointer-events-auto mb-1 flex w-full justify-center gap-1.5 px-2 sm:gap-2">
+        <div
+          className="pointer-events-auto mb-1.5 flex min-h-11 w-full justify-center gap-1.5 px-2 sm:gap-2"
+          data-testid="secondary-nav"
+        >
           {SECONDARY_LINKS.map(link => (
             <NavLink
               key={link.to}
@@ -70,7 +73,7 @@ export function BottomDock() {
               aria-label={link.label}
               className={({ isActive }) =>
                 cn(
-                  'cyber-panel min-h-8 flex-1 max-w-32 px-2 py-1.5 text-center text-[9px] font-mono uppercase tracking-wider rounded-md border bg-black/80 transition-all sm:text-[10px]',
+                  'flex min-h-11 flex-1 max-w-36 items-center justify-center rounded-md border bg-black/85 px-2 py-2 text-center text-[9px] font-mono font-bold uppercase tracking-wider transition-all sm:text-[10px]',
                   isActive
                     ? cn('border-current', accentText[link.accent])
                     : 'border-gray-800 text-gray-400 hover:text-white hover:border-gray-600'
@@ -83,21 +86,22 @@ export function BottomDock() {
         </div>
 
         {/* Dock art rail */}
-        <div className="relative h-[clamp(76px,21vw,96px)] w-full pointer-events-none">
+        <div className="relative h-[clamp(92px,27vw,125px)] w-full pointer-events-none">
           <img
             src={NEO_AUDIO_DOCK}
             alt="N.E.O Audio dock"
             draggable={false}
+            data-testid="bottom-dock-image"
             className="absolute inset-0 h-full w-full object-contain object-bottom select-none pointer-events-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
           />
 
           {/* Overlay clickable controls aligned to dock slots */}
-          <div className="absolute inset-0 grid grid-cols-5 items-center px-[6%] pointer-events-none">
+          <div className="absolute inset-x-0 bottom-[8%] top-[8%] grid grid-cols-5 items-center px-[5.5%] pointer-events-none">
             {DOCK_SLOTS.map(slot => {
               const isCenter = slot.area === 'center';
               const baseShape = isCenter
-                ? 'min-h-12 h-[82%] aspect-square -translate-y-1'
-                : 'min-h-11 h-[62%] aspect-square';
+                ? 'min-h-14 h-[88%] aspect-square -translate-y-1'
+                : 'min-h-11 h-[70%] aspect-square';
               const commonClass =
                 'pointer-events-auto relative flex items-center justify-center select-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-cyan rounded-full border-2';
 

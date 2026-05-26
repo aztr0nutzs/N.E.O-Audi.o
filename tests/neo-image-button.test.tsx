@@ -16,8 +16,12 @@ describe('NeoImageButton', () => {
     expect(btn).toBeInTheDocument();
     expect(btn.tagName).toBe('BUTTON');
     expect(btn.getAttribute('aria-label')).toBe('Play current track');
+    expect(btn).toHaveClass('min-w-[56px]');
+    expect(btn).toHaveClass('min-h-[56px]');
     const img = btn.querySelector('img');
     expect(img).not.toBeNull();
+    expect(img).toHaveClass('h-[82%]');
+    expect(img).toHaveClass('w-[82%]');
     expect(img!.getAttribute('src')).toBe('/assets/neo_audio/play.png');
   });
 

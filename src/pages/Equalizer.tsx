@@ -622,8 +622,8 @@ function VerticalSlider({ band, value, onChange, colorClass, bgClass, borderColo
                 value={value}
                 onChange={(e) => onChange(parseFloat(e.target.value))}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                style={{ appearance: 'slider-vertical', WebkitAppearance: 'slider-vertical' }}
-             />
+                style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+              />
              
              {/* Rendered Physical Thumb - we position this absolutely based on value */}
              <div 

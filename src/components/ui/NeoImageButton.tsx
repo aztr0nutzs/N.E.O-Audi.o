@@ -18,10 +18,10 @@ export interface NeoImageButtonProps {
 }
 
 const SIZE_CLASSES: Record<NeoImageButtonSize, string> = {
-  sm: 'w-10 h-10 min-w-[40px] min-h-[40px] p-1',
+  sm: 'w-11 h-11 min-w-[44px] min-h-[44px] p-1',
   md: 'w-14 h-14 min-w-[56px] min-h-[56px] p-1.5',
-  lg: 'w-16 h-16 min-w-[64px] min-h-[64px] p-2',
-  xl: 'w-20 h-20 min-w-[80px] min-h-[80px] p-2.5',
+  lg: 'w-[72px] h-[72px] min-w-[72px] min-h-[72px] p-2',
+  xl: 'w-[92px] h-[92px] min-w-[92px] min-h-[92px] p-2.5',
 };
 
 export const NeoImageButton = React.forwardRef<HTMLButtonElement, NeoImageButtonProps>(
@@ -70,7 +70,7 @@ export const NeoImageButton = React.forwardRef<HTMLButtonElement, NeoImageButton
           draggable={false}
           aria-hidden="true"
           className={cn(
-            'pointer-events-none w-full h-full object-contain select-none',
+            'pointer-events-none h-[82%] w-[82%] object-contain select-none',
             active && 'drop-shadow-[0_0_6px_rgba(0,240,255,0.85)]',
             imageClassName
           )}

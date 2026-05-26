@@ -26,9 +26,10 @@ export function NeoAudioHeader({
   return (
     <div
       className={cn(
-        'neo-audio-header neo-header-plate relative w-full overflow-hidden rounded-xl border border-neo-cyan/30 bg-black/40 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
+        'neo-audio-header neo-header-plate relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-neo-cyan/30 bg-black/35 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
         className
       )}
+      data-testid="neo-audio-header"
       data-variant={imageSrc ? 'custom' : variant}
       role="img"
       aria-label={alt}
@@ -38,7 +39,7 @@ export function NeoAudioHeader({
         alt=""
         aria-hidden="true"
         draggable={false}
-        className="neo-audio-header-image absolute inset-0 h-full w-full select-none pointer-events-none"
+        className="neo-audio-header-image h-full w-full select-none pointer-events-none"
       />
       <div
         className="pointer-events-none absolute inset-0"

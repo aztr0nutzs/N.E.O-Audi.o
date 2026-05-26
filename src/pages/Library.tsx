@@ -122,6 +122,7 @@ export function Library() {
   const [creatingPlaylist, setCreatingPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [addingToPlaylistTrack, setAddingToPlaylistTrack] = useState<string | null>(null);
+  const [showBackendDetails, setShowBackendDetails] = useState(false);
   const addPlaylist = useLibraryStore(state => state.addPlaylist);
   const updatePlaylist = useLibraryStore(state => state.updatePlaylist);
 
@@ -262,12 +263,12 @@ export function Library() {
   }, [location.search]);
 
   return (
-    <div className="max-w-md md:max-w-4xl mx-auto min-h-[calc(100vh-100px)] p-2 md:p-4 flex flex-col items-center relative">
+    <div className="mx-auto flex min-h-[calc(100vh-100px)] w-full max-w-md flex-col items-center overflow-x-hidden p-1 md:max-w-4xl md:p-4">
 
-      <NeoAudioHeader variant="header4" className="w-full mb-4" alt="N.E.O Audio Lab library" />
+      <NeoAudioHeader variant="header4" className="w-full mb-3" alt="N.E.O Audio Lab library" />
 
       {/* Top Header */}
-      <header className="w-full flex justify-between items-center z-20 mb-6 relative px-2">
+      <header className="w-full flex justify-between items-center z-20 mb-3 relative px-1">
          {view !== 'vault' ? (
            <button onClick={handleBack} className="w-10 h-10 flex items-center justify-center hex-btn border-neo-cyan text-neo-cyan hover:bg-neo-cyan/10">
               <ChevronLeft className="w-5 h-5" />
@@ -286,13 +287,13 @@ export function Library() {
       </header>
 
       {/* Main Container */}
-      <div className="w-full relative armored-frame bg-[#0a0a0f] p-4 md:p-8 flex flex-col items-center flex-1 z-10 overflow-hidden">
+      <div className="w-full relative armored-frame bg-[#0a0a0f]/95 p-3 md:p-8 flex flex-col items-center flex-1 z-10 overflow-hidden">
          
-         <h1 className="text-2xl md:text-5xl font-black italic tracking-widest uppercase mb-1 drop-shadow-[0_0_15px_#00f0ff] mt-4 text-center">
+         <h1 className="mt-2 mb-1 text-center text-xl md:text-5xl font-black italic tracking-widest uppercase drop-shadow-[0_0_15px_#00f0ff]">
             <span className="text-neo-cyan">LIBRARY /</span><br/>
             <span className="text-neo-magenta">ARCHIVE VAULT</span>
          </h1>
-         <div className="flex items-center justify-center gap-4 mb-12">
+         <div className="mb-5 flex items-center justify-center gap-3 md:mb-12 md:gap-4">
             <div className="h-px bg-neo-cyan w-8 md:w-12 opacity-50" />
             <p className="font-mono text-[9px] md:text-[10px] text-neo-cyan tracking-widest uppercase">
                Your data. Stored. Secured. Synced.
@@ -301,27 +302,43 @@ export function Library() {
          </div>
 
          {backendStatus === 'offline' && (
-            <div className="mb-6 flex w-full max-w-2xl items-start gap-3 border border-neo-magenta/50 bg-black/70 p-3 text-left shadow-[0_0_18px_rgba(255,0,255,0.18)]">
+            <div className="mb-5 flex w-full max-w-2xl items-start gap-3 border border-neo-magenta/50 bg-black/75 p-3 text-left shadow-[0_0_18px_rgba(255,0,255,0.18)]">
                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-neo-magenta" />
-               <div>
-                  <p className="font-mono text-xs font-bold uppercase tracking-widest text-neo-magenta">Backend offline / configure API endpoint</p>
+               <div className="min-w-0 flex-1">
+                  <p className="font-mono text-xs font-bold uppercase tracking-widest text-neo-magenta">Backend offline or API endpoint misconfigured.</p>
                   <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-gray-500">
-                     {backendMessage || 'Server-powered library, upload, download, cover art, and stream features require a reachable N.E.O backend.'}
+                     Server-powered library, upload, download, cover art, and stream features require a reachable N.E.O backend.
                   </p>
+                  {backendMessage && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowBackendDetails(value => !value)}
+                        className="border border-gray-700 bg-black px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-gray-300 hover:border-neo-magenta hover:text-neo-magenta"
+                      >
+                        {showBackendDetails ? 'Hide Technical Details' : 'Show Technical Details'}
+                      </button>
+                      {showBackendDetails && (
+                        <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words border border-gray-800 bg-black/80 p-2 font-mono text-[10px] normal-case tracking-normal text-gray-400">
+                          {backendMessage}
+                        </pre>
+                      )}
+                    </div>
+                  )}
                </div>
             </div>
          )}
 
          {view === 'vault' ? (
-           <div className="relative w-full max-w-lg mx-auto flex-1 min-h-[550px] mb-8">
+           <div className="relative w-full max-w-lg mx-auto flex-1 min-h-[510px] mb-6 md:min-h-[550px] md:mb-8">
               
               {/* Animated Connection Lines */}
-              <svg className="absolute top-[30px] left-0 w-full h-[400px] pointer-events-none z-0" style={{ filter: 'drop-shadow(0 0 8px currentColor)' }}>
-                 <path d="M 50% 100 L 50% 160 L 25% 160" fill="none" stroke="#ff00ff" strokeWidth="2" className="animate-[pulse_2s_infinite]" />
-                 <path d="M 50% 100 L 50% 160 L 75% 160" fill="none" stroke="#00f0ff" strokeWidth="2" className="animate-[pulse_2s_infinite_0.5s]" />
-                 <path d="M 50% 100 L 50% 210 L 25% 210 L 25% 320" fill="none" stroke="#0080ff" strokeWidth="2" className="opacity-70" />
-                 <path d="M 50% 100 L 50% 210 L 75% 210 L 75% 320" fill="none" stroke="#39ff14" strokeWidth="2" className="opacity-70" />
-                 <path d="M 50% 100 L 50% 410" fill="none" stroke="#fce205" strokeWidth="2" className="opacity-80" />
+              <svg viewBox="0 0 100 450" preserveAspectRatio="none" className="absolute top-[30px] left-0 w-full h-[400px] pointer-events-none z-0" style={{ filter: 'drop-shadow(0 0 8px currentColor)' }}>
+                 <path d="M 50 100 L 50 160 L 25 160" fill="none" stroke="#ff00ff" strokeWidth="2" className="animate-[pulse_2s_infinite]" />
+                 <path d="M 50 100 L 50 160 L 75 160" fill="none" stroke="#00f0ff" strokeWidth="2" className="animate-[pulse_2s_infinite_0.5s]" />
+                 <path d="M 50 100 L 50 210 L 25 210 L 25 320" fill="none" stroke="#0080ff" strokeWidth="2" className="opacity-70" />
+                 <path d="M 50 100 L 50 210 L 75 210 L 75 320" fill="none" stroke="#39ff14" strokeWidth="2" className="opacity-70" />
+                 <path d="M 50 100 L 50 410" fill="none" stroke="#fce205" strokeWidth="2" className="opacity-80" />
               </svg>
 
               {/* Central Core */}
