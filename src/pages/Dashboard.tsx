@@ -12,6 +12,7 @@ import { cn, formatDuration } from '../lib/utils';
 import { CoverArt } from '../components/media/CoverArt';
 import { buildSmartPlaylists } from '../lib/smartPlaylists';
 import { useSignalChainStore } from '../store/useSignalChainStore';
+import { useAudioEnhancerStore } from '../store/useAudioEnhancerStore';
 
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'analyzing', 'downloading', 'converting', 'indexing']);
 
@@ -106,6 +107,8 @@ export function Dashboard() {
       })
       .slice(0, 3);
   }, [tracks]);
+
+  const enhancer = useAudioEnhancerStore(state => state.settings);
 
   const avgGain = useMemo(() => {
     if (!bandValues.length) return 0;
@@ -209,9 +212,7 @@ export function Dashboard() {
           ) : (
             <p className="font-mono text-xs text-gray-400 tracking-widest">NO ACTIVE SIGNAL</p>
           )}
-          <div className="mt-3 border-t border-gray-800 pt-2 text-[10px] font-mono text-gray-400 uppercase tracking-wider">
-            REPEAT: {repeat} · SHUFFLE: {shuffle ? 'ON' : 'OFF'} · VOL: {Math.round(volume * 100)}% · SPD: {playbackSpeed}x
-          </div>
+          <div className="mt-3 border-t border-gray-800 pt-2 text-[10px] font-mono text-gray-400 uppercase tracking-wider">REPEAT: {repeat} · SHUFFLE: {shuffle ? 'ON' : 'OFF'} · VOL: {Math.round(volume * 100)}% · SPD: {playbackSpeed}x</div><div className="mt-2 text-[10px] font-mono uppercase tracking-wider text-gray-300">Enhancer: {enhancer.enabled ? 'Active' : 'Off'} · {enhancer.mode} · {enhancer.outputProfile} · Limiter {enhancer.limiter ? 'ON' : 'OFF'} <button className="text-neo-cyan ml-2" onClick={() => navigate('/equalizer')}>Open Equalizer / Enhancer</button></div>
         </div>
       </section>
 

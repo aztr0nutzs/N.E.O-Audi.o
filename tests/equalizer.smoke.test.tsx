@@ -51,6 +51,7 @@ describe('Equalizer smoke', () => {
     expect(screen.getByText(/audio signal chain/i)).toBeInTheDocument();
     expect(screen.getByText(/^signal chain$/i)).toBeInTheDocument();
     expect(screen.getByText(/signal curves \/ a-b tuning/i)).toBeInTheDocument();
+    expect(screen.getByText(/N.E.O AUDIO ENHANCER/i)).toBeInTheDocument();
     ['Core', 'Bass', 'Vocals', 'Night', 'Retro', 'Device', 'Custom'].forEach(label => {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     });
