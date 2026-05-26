@@ -131,12 +131,12 @@ export function Equalizer() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto min-h-[calc(100vh-100px)] pb-32 flex flex-col items-center p-2 sm:p-4 font-sans overflow-x-hidden pt-8">
+    <div className="max-w-6xl mx-auto min-h-0 pb-40 flex flex-col items-center p-2 sm:p-4 font-sans overflow-x-hidden pt-2 md:pt-8">
 
-      <NeoAudioHeader variant="header4" className="w-full mb-6" alt="N.E.O Audio Lab equalizer" />
+      <NeoAudioHeader variant="header4" className="w-full mb-4 md:mb-6" alt="N.E.O Audio Lab equalizer" />
 
       {/* Header */}
-      <header className="w-full flex justify-between items-center armored-frame border-2 border-[#1a1a24] bg-[#0a0a0f] p-2 md:p-4 mb-8 shadow-[0_0_20px_rgba(0,0,0,0.8)] relative">
+      <header className="w-full flex justify-between items-center armored-frame border-2 border-[#1a1a24] bg-[#0a0a0f] p-2 md:p-4 mb-5 md:mb-8 shadow-[0_0_20px_rgba(0,0,0,0.8)] relative">
          <div className="absolute inset-0 pointer-events-none border border-neo-cyan/20 rounded-xl m-1" />
          
          <button className="text-neo-cyan hover:text-white transition-colors px-2">

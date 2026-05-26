@@ -263,7 +263,7 @@ export function Library() {
   }, [location.search]);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-100px)] w-full max-w-md flex-col items-center overflow-x-hidden p-1 md:max-w-4xl md:p-4">
+    <div className="mx-auto flex min-h-0 w-full max-w-md flex-col items-center overflow-x-hidden p-1 md:max-w-4xl md:p-4">
 
       <NeoAudioHeader variant="header4" className="w-full mb-3" alt="N.E.O Audio Lab library" />
 
@@ -287,13 +287,13 @@ export function Library() {
       </header>
 
       {/* Main Container */}
-      <div className="w-full relative armored-frame bg-[#0a0a0f]/95 p-3 md:p-8 flex flex-col items-center flex-1 z-10 overflow-hidden">
+      <div className="w-full relative armored-frame bg-[#0a0a0f]/95 p-3 md:p-6 flex flex-col items-center flex-1 z-10 overflow-hidden">
          
          <h1 className="mt-2 mb-1 text-center text-xl md:text-5xl font-black italic tracking-widest uppercase drop-shadow-[0_0_15px_#00f0ff]">
             <span className="text-neo-cyan">LIBRARY /</span><br/>
             <span className="text-neo-magenta">ARCHIVE VAULT</span>
          </h1>
-         <div className="mb-5 flex items-center justify-center gap-3 md:mb-12 md:gap-4">
+         <div className="mb-4 flex items-center justify-center gap-3 md:mb-8 md:gap-4">
             <div className="h-px bg-neo-cyan w-8 md:w-12 opacity-50" />
             <p className="font-mono text-[9px] md:text-[10px] text-neo-cyan tracking-widest uppercase">
                Your data. Stored. Secured. Synced.
@@ -330,7 +330,7 @@ export function Library() {
          )}
 
          {view === 'vault' ? (
-           <div className="relative w-full max-w-lg mx-auto flex-1 min-h-[510px] mb-6 md:min-h-[550px] md:mb-8">
+           <div className="relative w-full max-w-lg mx-auto flex-1 min-h-[450px] mb-4 md:min-h-[520px] md:mb-6">
               
               {/* Animated Connection Lines */}
               <svg viewBox="0 0 100 450" preserveAspectRatio="none" className="absolute top-[30px] left-0 w-full h-[400px] pointer-events-none z-0" style={{ filter: 'drop-shadow(0 0 8px currentColor)' }}>
@@ -373,7 +373,7 @@ export function Library() {
                  title="PLAYLISTS" subtitle="indexed" icon={<Music />} color="yellow" 
                  className="absolute left-1/2 -translate-x-1/2 top-[410px] w-[50%] lg:w-[40%]" onClick={() => setView('playlists')} 
               />
-              <div className="relative z-20 pt-[540px] space-y-6">
+              <div className="relative z-20 pt-[500px] space-y-4 md:pt-[540px] md:space-y-6">
                  <section>
                     <div className="mb-3 flex items-end justify-between gap-3">
                        <div>
@@ -462,7 +462,7 @@ export function Library() {
                  {(() => {
                     if (view === 'mood_packs') {
                        if (moodPacks.length === 0) return (
-                          <div className="text-center flex flex-col items-center justify-center h-full text-neo-lime/50 font-mono tracking-widest text-lg border-2 border-dashed border-neo-lime/20 rounded-xl bg-black/40 p-8">
+                          <div className="text-center flex flex-col items-center justify-center min-h-[220px] text-neo-lime/50 font-mono tracking-widest text-base border-2 border-dashed border-neo-lime/20 rounded-xl bg-black/40 p-5">
                              <Smile className="w-12 h-12 mb-4 opacity-50" />
                              NO SIGNALS MATCH THIS PACK
                              <p className="text-xs uppercase mt-4 max-w-xs text-gray-500">Edit track metadata to add genres and populate this vault.</p>
@@ -511,7 +511,7 @@ export function Library() {
                              )}
                              
                              {playlists.length === 0 ? (
-                                <div className="text-center flex flex-col items-center justify-center flex-1 text-neo-yellow/50 font-mono tracking-widest text-lg border-2 border-dashed border-neo-yellow/20 rounded-xl bg-black/40 p-8 min-h-[200px]">
+                                <div className="text-center flex flex-col items-center justify-center flex-1 text-neo-yellow/50 font-mono tracking-widest text-base border-2 border-dashed border-neo-yellow/20 rounded-xl bg-black/40 p-5 min-h-[180px]">
                                    <Folder className="w-12 h-12 mb-4 opacity-50" />
                                    NO PLAYLISTS CONFIGURED.
                                 </div>
@@ -553,7 +553,7 @@ export function Library() {
                        else if (view === 'playlist_tracks') { Emptymessage = "PLAYLIST IS EMPTY."; Icon = Music; colorClass = "text-neo-yellow/50"; borderClass = "border-neo-yellow/20"; }
 
                        return (
-                          <div className={cn("text-center flex flex-col items-center justify-center h-full font-mono tracking-widest text-lg border-2 border-dashed rounded-xl bg-black/40 p-8", colorClass, borderClass)}>
+                          <div className={cn("text-center flex flex-col items-center justify-center min-h-[220px] font-mono tracking-widest text-base border-2 border-dashed rounded-xl bg-black/40 p-5", colorClass, borderClass)}>
                              <Icon className="w-12 h-12 mb-4 opacity-50" />
                              {Emptymessage}
                           </div>
@@ -650,7 +650,7 @@ export function Library() {
       </div>
 
       {/* Vault Status Footer */}
-      <div className="w-full max-w-4xl mt-6 cyber-panel p-3 px-6 flex justify-between items-center z-20">
+      <div className="w-full max-w-4xl mt-4 cyber-panel p-3 px-4 flex justify-between items-center z-20">
          <div className="flex flex-col">
             <span className="text-[10px] font-mono tracking-widest text-neo-cyan mb-1">VAULT STATUS</span>
             <div className="flex items-center text-xs font-bold tracking-widest text-neo-lime">

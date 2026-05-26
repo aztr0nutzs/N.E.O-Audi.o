@@ -168,7 +168,7 @@ export function Dashboard() {
               {reactorState}
             </span>
           </div>
-          <div className={cn('relative h-[clamp(190px,54vw,250px)] md:h-56 border rounded-xl bg-black/55 overflow-hidden', reactorState === 'alert' ? 'border-orange-500/60 shadow-[0_0_18px_rgba(249,115,22,0.35)]' : 'border-neo-cyan/30')}>
+          <div className={cn('relative h-[clamp(170px,45vw,230px)] md:h-56 border rounded-xl bg-black/55 overflow-hidden', reactorState === 'alert' ? 'border-orange-500/60 shadow-[0_0_18px_rgba(249,115,22,0.35)]' : 'border-neo-cyan/30')}>
             <div className={cn('absolute inset-6 rounded-full border', reactorState === 'downloading' ? 'animate-spin border-neo-magenta/50' : 'border-neo-cyan/30')} />
             <div className={cn('absolute inset-10 rounded-full', reactorState === 'playing' ? 'shadow-[0_0_30px_rgba(0,240,255,0.35)]' : reactorState === 'alert' ? 'shadow-[0_0_30px_rgba(249,115,22,0.35)]' : 'shadow-[0_0_18px_rgba(148,163,184,0.25)]')} />
             <div className="absolute inset-0 flex items-end gap-1 p-4">
@@ -200,10 +200,10 @@ export function Dashboard() {
               <p className="font-mono text-xs">{currentTrack.format.toUpperCase()} / {currentTrack.bitrate ? `${currentTrack.bitrate}kbps` : 'UNKNOWN'}</p>
               <p className="font-mono text-xs">{formatDuration((progress || 0) * (duration || currentTrack.duration || 0))} / {formatDuration(duration || currentTrack.duration || 0)}</p>
               <div className="flex gap-2 flex-wrap pt-1">
-                <NeoImageButton src={isPlaying ? NEO_AUDIO_BUTTONS.pause : NEO_AUDIO_BUTTONS.play} alt="Play pause" label="Play/Pause" size="sm" onClick={isPlaying ? pause : resume} />
-                <NeoImageButton src={NEO_AUDIO_BUTTONS.stop} alt="Stop" label="Stop" size="sm" onClick={stop} />
-                <NeoImageButton src={NEO_AUDIO_BUTTONS.eq} alt="Open Player" label="Open Player" size="sm" onClick={() => navigate('/player')} />
-                <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Open Track Lab" label="Open Track Lab" size="sm" onClick={() => navigate(`/track/${currentTrack.id}`)} />
+                <NeoImageButton src={isPlaying ? NEO_AUDIO_BUTTONS.pause : NEO_AUDIO_BUTTONS.play} alt="Play pause" label="Play/Pause" size="sm" imageScale={1.28} onClick={isPlaying ? pause : resume} />
+                <NeoImageButton src={NEO_AUDIO_BUTTONS.stop} alt="Stop" label="Stop" size="sm" imageScale={1.28} onClick={stop} />
+                <NeoImageButton src={NEO_AUDIO_BUTTONS.eq} alt="Open Player" label="Open Player" size="sm" imageScale={1.28} onClick={() => navigate('/player')} />
+                <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Open Track Lab" label="Open Track Lab" size="sm" imageScale={1.28} onClick={() => navigate(`/track/${currentTrack.id}`)} />
               </div>
             </div>
           ) : (
@@ -328,7 +328,7 @@ export function Dashboard() {
 
       <section className="cyber-panel neo-mobile-card">
         <h3 className="text-sm font-bold tracking-widest uppercase text-white mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-8" data-testid="dashboard-quick-actions">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-8" data-testid="dashboard-quick-actions">
           {[
             { src: NEO_AUDIO_BUTTONS.download, alt: 'Downloader', label: 'Open Downloader', text: 'Download', onClick: () => navigate('/download') },
             { src: NEO_AUDIO_BUTTONS.playlist, alt: 'Library', label: 'Open Library', text: 'Library', onClick: () => navigate('/library') },
@@ -338,14 +338,14 @@ export function Dashboard() {
             { src: NEO_AUDIO_BUTTONS.settings, alt: 'Settings', label: 'Open Settings', text: 'Settings', onClick: () => navigate('/settings') },
             { src: NEO_AUDIO_BUTTONS.download, alt: 'Upload', label: 'Upload Track', text: 'Upload', onClick: () => navigate('/upload') },
           ].map(action => (
-            <div key={action.label} className="flex min-w-0 flex-col items-center gap-1 text-center">
-              <NeoImageButton src={action.src} alt={action.alt} label={action.label} size="md" onClick={action.onClick} />
-              <span className="w-full truncate font-mono text-[9px] font-bold uppercase tracking-wider text-gray-300">{action.text}</span>
+            <div key={action.label} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+              <NeoImageButton src={action.src} alt={action.alt} label={action.label} size="lg" imageScale={1.28} onClick={action.onClick} />
+              <span className="w-full truncate font-mono text-[10px] font-bold uppercase tracking-wider text-gray-200">{action.text}</span>
             </div>
           ))}
-          <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-            <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Create Playlist" label="Create Playlist (Coming soon)" size="md" disabled />
-            <span className="w-full truncate font-mono text-[9px] font-bold uppercase tracking-wider text-gray-500">Playlist</span>
+          <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+            <NeoImageButton src={NEO_AUDIO_BUTTONS.playlist} alt="Create Playlist" label="Create Playlist (Coming soon)" size="lg" imageScale={1.28} disabled />
+            <span className="w-full truncate font-mono text-[10px] font-bold uppercase tracking-wider text-gray-500">Playlist</span>
           </div>
         </div>
       </section>

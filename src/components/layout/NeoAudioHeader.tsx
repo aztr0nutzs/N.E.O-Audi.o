@@ -1,5 +1,6 @@
 import { NEO_AUDIO_HEADER_3, NEO_AUDIO_HEADER_4 } from '../../lib/neoAudioAssets';
 import { cn } from '../../lib/utils';
+import type { CSSProperties } from 'react';
 
 export type NeoAudioHeaderVariant = 'header3' | 'header4';
 
@@ -22,6 +23,9 @@ export function NeoAudioHeader({
   imageSrc,
 }: NeoAudioHeaderProps) {
   const src = imageSrc ?? HEADER_VARIANTS[variant];
+  const headerStyle = {
+    '--neo-audio-header-image': `url("${src}")`,
+  } as CSSProperties;
 
   return (
     <div
@@ -33,13 +37,14 @@ export function NeoAudioHeader({
       data-variant={imageSrc ? 'custom' : variant}
       role="img"
       aria-label={alt}
+      style={headerStyle}
     >
       <img
         src={src}
         alt=""
         aria-hidden="true"
         draggable={false}
-        className="neo-audio-header-image h-full w-full select-none pointer-events-none"
+        className="neo-audio-header-image pointer-events-none absolute inset-0 h-full w-full select-none opacity-0"
       />
       <div
         className="pointer-events-none absolute inset-0"

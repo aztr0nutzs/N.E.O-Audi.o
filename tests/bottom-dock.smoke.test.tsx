@@ -12,8 +12,7 @@ describe('BottomDock', () => {
   it('renders the dock image', () => {
     render(<MemoryRouter><BottomDock /></MemoryRouter>);
     const dockImg = screen.getByTestId('bottom-dock-image') as HTMLImageElement;
-    expect(dockImg).toHaveClass('object-contain');
-    expect(dockImg).toHaveClass('h-full');
+    expect(dockImg).toHaveClass('neo-dock-art');
     expect(dockImg.getAttribute('src')).toContain('neo_audio_dock.png');
   });
 
@@ -38,12 +37,11 @@ describe('BottomDock', () => {
     expect(chat).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('exposes secondary access to downloader, upload, equalizer', () => {
+  it('does not render a competing fixed secondary nav strip', () => {
     render(<MemoryRouter><BottomDock /></MemoryRouter>);
-    expect(screen.getByTestId('secondary-nav')).toBeInTheDocument();
-    expect(screen.getByTestId('secondary-nav')).toHaveClass('min-h-11');
-    expect(screen.getByRole('link', { name: /downloader/i })).toHaveAttribute('href', '/download');
-    expect(screen.getByRole('link', { name: /upload/i })).toHaveAttribute('href', '/upload');
-    expect(screen.getByRole('link', { name: /equalizer/i })).toHaveAttribute('href', '/equalizer');
+    expect(screen.queryByTestId('secondary-nav')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /downloader/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /upload/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /equalizer/i })).not.toBeInTheDocument();
   });
 });
