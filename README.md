@@ -176,12 +176,22 @@ Build a debug APK:
 npm run android:build:debug
 ```
 
+Unix/macOS/Linux Gradle wrapper equivalent:
+
+```bash
+cd android
+chmod +x gradlew
+./gradlew assembleDebug
+```
+
 PowerShell Gradle equivalent:
 
 ```powershell
 cd android
 .\gradlew.bat assembleDebug
 ```
+
+The first Gradle wrapper run may need internet access to download the configured Gradle distribution from `services.gradle.org`. If that host is unreachable, the Android build can fail before compiling the app; configure a local Gradle distribution/cache or restore network access rather than treating that as an app build failure.
 
 The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. Background playback and media notifications are not complete unless implemented later.
 

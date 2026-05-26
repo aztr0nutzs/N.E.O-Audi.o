@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const track: any = { id:'t1', title:'Track', artist:'Artist', sourceType:'local', localUrl:'blob:x', format:'mp3', duration:100, size:10, createdAt:0, updatedAt:0, favorite:false };
 
@@ -19,7 +19,7 @@ describe('MetadataLab', () => {
     fireEvent.click(screen.getByText(/^save$/i));
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Updated' } });
     fireEvent.click(screen.getByText(/^save$/i));
-    expect(onSave).toHaveBeenCalled();
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
     fireEvent.click(screen.getByText(/cancel/i));
     expect(onClose).toHaveBeenCalled();
   });

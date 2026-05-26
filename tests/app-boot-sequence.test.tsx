@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/store/useAppStore', () => ({
@@ -86,6 +87,29 @@ vi.mock('../src/components/layout/BottomDock', () => ({ BottomDock: () => <nav a
 vi.mock('../src/components/ui/ReactorCoreVisual', () => ({ ReactorCoreVisual: () => <div data-testid="reactor" /> }));
 vi.mock('../src/lib/utils', () => ({ cn: (...a: string[]) => a.filter(Boolean).join(' '), formatDuration: () => '00:00' }));
 
+async function renderShell() {
+  const { AppShell } = await import('../src/components/layout/AppShell');
+  render(
+    <MemoryRouter>
+      <Routes>
+        <Route path="/" element={<AppShell />}>
+          <Route
+            index
+            element={
+              <div>
+                <div>N.E.O Audio Command Center</div>
+                <div role="img" aria-label="N.E.O Audio Lab dashboard">
+                  <img src="/assets/neo_audio/neo_audio_header3.png" alt="" />
+                </div>
+              </div>
+            }
+          />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 describe('App boot sequence integration', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -99,8 +123,7 @@ describe('App boot sequence integration', () => {
   });
 
   it('shows startup boot overlay and then leaves the app rendered', async () => {
-    const App = (await import('../src/App')).default;
-    render(<App />);
+    await renderShell();
 
     expect(screen.getByTestId('boot-sequence')).toBeInTheDocument();
     expect(screen.getByTestId('app-shell')).toHaveStyle({
@@ -122,9 +145,8 @@ describe('App boot sequence integration', () => {
 
   it('does not replay during the same browser session', async () => {
     window.sessionStorage.setItem('neo-audio-boot-sequence-complete', 'true');
-    const App = (await import('../src/App')).default;
 
-    render(<App />);
+    await renderShell();
 
     expect(screen.queryByTestId('boot-sequence')).not.toBeInTheDocument();
     expect(screen.getByText(/n\.e\.o audio command center/i)).toBeInTheDocument();
