@@ -7,7 +7,6 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useDownloadStore } from '../store/useDownloadStore';
 import { useEqualizerStore } from '../store/useEqualizerStore';
-import { useAnalyzerStore } from '../store/useAnalyzerStore';
 import { cn, formatDuration } from '../lib/utils';
 import { CoverArt } from '../components/media/CoverArt';
 import { buildSmartPlaylists } from '../lib/smartPlaylists';
@@ -34,8 +33,6 @@ function deterministicBars(seed: string, count = 32) {
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const setAnalyzerOpen = useAnalyzerStore(state => state.setAnalyzerOpen);
-
   const {
     currentTrackId,
     isPlaying,
@@ -329,43 +326,19 @@ export function Dashboard() {
 
       <section className="cyber-panel neo-mobile-card">
         <h3 className="text-sm font-bold tracking-widest uppercase text-white mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-8" data-testid="dashboard-quick-actions">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3" data-testid="dashboard-quick-actions">
           {[
-            { src: NEO_AUDIO_BUTTONS.download, alt: 'Downloader', label: 'Open Downloader', text: 'Download', scale: 2.8, focusX: 28.7, focusY: 79.3, onClick: () => navigate('/download') },
-            { src: NEO_AUDIO_BUTTONS.playlist, alt: 'Library', label: 'Open Library', text: 'Library', scale: 2.8, focusX: 70.8, focusY: 55.4, onClick: () => navigate('/library') },
-            { src: NEO_AUDIO_BUTTONS.play, alt: 'Player', label: 'Open Player', text: 'Player', scale: 1.35, focusX: 51.4, focusY: 50.9, onClick: () => navigate('/player') },
-            { src: NEO_AUDIO_BUTTONS.equalizer, alt: 'Equalizer', label: 'Open Equalizer', text: 'EQ', scale: 2.05, focusX: 33.4, focusY: 64.8, onClick: () => navigate('/equalizer') },
-            { src: NEO_AUDIO_BUTTONS.eq, alt: 'Analyzer', label: 'Live Analyzer', text: 'Analyzer', scale: 2.8, focusX: 29.8, focusY: 43.4, onClick: () => setAnalyzerOpen(true) },
-            { src: NEO_AUDIO_BUTTONS.settings, alt: 'Settings', label: 'Open Settings', text: 'Settings', scale: 2.8, focusX: 29.4, focusY: 42.8, onClick: () => navigate('/settings') },
-            { src: NEO_AUDIO_BUTTONS.download, alt: 'Upload', label: 'Upload Track', text: 'Upload', scale: 2.8, focusX: 28.7, focusY: 79.3, onClick: () => navigate('/upload') },
+            { text: 'Download', onClick: () => navigate('/download') },
+            { text: 'Upload', onClick: () => navigate('/upload') },
+            { text: 'Library', onClick: () => navigate('/library') },
+            { text: 'Player', onClick: () => navigate('/player') },
+            { text: 'EQ', onClick: () => navigate('/equalizer') },
+            { text: 'Settings', onClick: () => navigate('/settings') },
           ].map(action => (
-            <div key={action.label} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
-              <NeoImageButton
-                src={action.src}
-                alt={action.alt}
-                label={action.label}
-                size="lg"
-                imageScale={action.scale}
-                imageFocusX={action.focusX}
-                imageFocusY={action.focusY}
-                onClick={action.onClick}
-              />
-              <span className="w-full truncate font-mono text-[10px] font-bold uppercase tracking-wider text-gray-200">{action.text}</span>
-            </div>
+            <button key={action.text} onClick={action.onClick} className="min-h-[72px] rounded-xl border border-neo-cyan/35 bg-black/50 px-3 py-2 text-sm font-bold uppercase tracking-wider text-gray-100 hover:border-neo-cyan">
+              {action.text}
+            </button>
           ))}
-          <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
-            <NeoImageButton
-              src={NEO_AUDIO_BUTTONS.playlist}
-              alt="Create Playlist"
-              label="Create Playlist (Coming soon)"
-              size="lg"
-              imageScale={2.8}
-              imageFocusX={70.8}
-              imageFocusY={55.4}
-              disabled
-            />
-            <span className="w-full truncate font-mono text-[10px] font-bold uppercase tracking-wider text-gray-500">Playlist</span>
-          </div>
         </div>
       </section>
 

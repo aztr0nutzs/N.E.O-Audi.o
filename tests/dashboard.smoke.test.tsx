@@ -75,5 +75,8 @@ describe('Dashboard smoke', () => {
     expect(screen.getByText(/now playing/i)).toBeInTheDocument();
     expect(screen.getByText(/up next/i)).toBeInTheDocument();
     expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /download/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^upload$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/^playlist$/i)).not.toBeInTheDocument();
   });
 });

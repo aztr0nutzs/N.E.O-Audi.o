@@ -3,7 +3,7 @@ import { Track, Playlist, MoodPack, SmartPlaylist, SmartPlaylistId } from '../ty
 import { storage } from '../services/storage';
 import toast from 'react-hot-toast';
 import { buildMoodPacks, buildSmartPlaylists } from '../lib/smartPlaylists';
-import { resolveApiAssetUrl } from '../services/apiBase';
+import { normalizeBackendError, resolveApiAssetUrl } from '../services/apiBase';
 
 interface LibraryState {
   tracks: Track[];
@@ -50,7 +50,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       set({
         isLoading: false,
         backendStatus: 'offline',
-        backendMessage: e instanceof Error ? e.message : 'Backend offline / configure API endpoint',
+        backendMessage: normalizeBackendError(e),
       });
     }
   },
